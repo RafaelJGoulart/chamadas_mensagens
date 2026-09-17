@@ -146,6 +146,17 @@ Pare o sistema e copie um arquivo de `backups\` por cima de `data\sistema.db`:
 copy /y "backups\sistema_2026-09-14_123000.db" "data\sistema.db"
 ```
 
+### Cópia de segurança em .sql (exportar/restaurar)
+
+```bat
+python seed_banco.py exportar              :: gera seed\projeto_AAAA-MM-DD_HHMMSS.sql + atualiza seed\projeto_atual.sql
+python seed_banco.py restaurar seed\projeto_atual.sql   :: recria o banco (pede RESTAURAR; preserva o atual em backups\)
+python seed_banco.py resumo                :: contagem de registros por tabela
+```
+
+Os `.sql` ficam **só no computador** (fora do Git pelo `.gitignore`) — servem
+para levar o banco pronto a outra máquina: copie o `.sql`, rode `restaurar` lá.
+
 ---
 
 ## Estrutura do projeto
@@ -172,8 +183,12 @@ SistemaChamadas/
 ├── backup.bat            → cópia do banco
 ├── gerenciar_dados_teste.py → popular/resetar/resumo do banco
 ├── importar_excel.py        → limpa e importa os exports do Microcamp
-├── Export_F10*.xlsx         → exports originais (fonte da importação)
+├── seed_banco.py            → exportar/restaurar/resumo do banco (.sql em seed/)
+├── seed/                    → cópias .sql do banco (somente local, fora do Git)
+├── Export_F10*.xlsx         → exports originais (fonte da importação, fora do Git)
+├── feather/                 → coleção original de ícones (fonte dos 21 em static/icons)
 ├── requirements.txt
+├── .gitignore               → data/, backups/, seed/*.sql, *.xlsx e logs/ fora do Git
 └── README.md
 ```
 
@@ -215,6 +230,12 @@ Menu interativo: popular (20 alunos com 3 perfis de telefone), resetar (pede
 
 ## Importação de dados reais (Microcamp)
 
+Pré-requisito (fora do `requirements.txt`):
+
+```bat
+python -m pip install openpyxl
+```
+
 ```bat
 python importar_excel.py
 ```
@@ -226,8 +247,9 @@ só com Status Contrato = "Ativo"; alunos não-ativos que o F10 marcou presentes
 entram como **ausentes**; telefones limpos e priorizando o responsável.
 Re-executável (sempre parte de um banco vazio).
 
-> O banco atual já contém os dados reais de set/2026 (109 alunos, 7 turmas,
-> 12 chamadas). Não rode `gerenciar_dados_teste.py` se quiser manter esses dados.
+> O banco atual já contém os dados reais de set/2026 (109 alunos, 7 turmas;
+> 12 chamadas na importação, mais as lançadas desde então — 13 em 17/09).
+> Não rode `gerenciar_dados_teste.py` se quiser manter esses dados.
 
 ---
 
@@ -237,3 +259,5 @@ Re-executável (sempre parte de um banco vazio).
 - Não use caminhos absolutos com letra fixa;
 - Para atualizar o sistema, substitua apenas o conteúdo da pasta do projeto,
   preservando `data\` (banco) e `backups\`.
+- O que vai para o GitHub: só o código. `data\`, `backups\`, `seed\*.sql`,
+  `*.xlsx` e `logs\` ficam fora (ver `.gitignore`) — contêm dados dos alunos.

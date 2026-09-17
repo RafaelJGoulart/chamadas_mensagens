@@ -11,13 +11,14 @@ Sistema **local** de chamadas e frequência para turmas de Informática.
 Usuário único (um professor), sem login, sem nuvem, sem APIs externas.
 Roda em `http://127.0.0.1:5000`.
 
-Tecnologias: Python 3.12, Flask 3.1.3, Flask-SQLAlchemy 3.1.1, SQLite,
-Jinja2, HTML/CSS/JS puros + ícones Feather (copiados p/ `static/icons`,
-sprite embutido inline, sem CDNs).
+Tecnologias: Python 3.12, Flask 3.1.3, Flask-SQLAlchemy 3.1.1, SQLAlchemy 2.0.52,
+SQLite, Jinja2, HTML/CSS/JS puros + ícones Feather (coleção original em
+`feather/`; 21 copiados p/ `static/icons`, sprite embutido inline, sem CDNs).
+Importação usa `openpyxl` (instalado à parte — **fora** do `requirements.txt`).
 
 ---
 
-## 2. Status: EM EVOLUÇÃO (base concluída + nova matriz + contato + 3 telefones)
+## 2. Status: EM EVOLUÇÃO (base concluída + matriz + contato + 3 fones + importação + seed)
 
 Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 1. `iniciar.bat` refeito (1º plano, navegador com delay, `pause` no fim)
@@ -38,6 +39,11 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     `Export_F10.xlsx` + `Export_F10 - Chamadas.xlsx` (set/2026). Não-ativos
     que o F10 de chamadas marcou presentes (Rebecca/QA19 e Gustavo/SB1330)
     entram como **ausentes**, conforme decidido.
+15. **Cópia/restauração do banco** (`seed_banco.py` + pasta `seed/`):
+    `exportar` gera `.sql` (schema+dados) + `projeto_atual.sql`, `restaurar`
+    recria o banco (com backup prévio), `resumo` conta registros. `.sql`
+    **fora do Git** (`.gitignore`) — só local. Desde então o professor lançou
+    novas chamadas pelo sistema (13 chamadas / 184 presenças em 17/09).
 
 > Tarefas adiadas de propósito (não implementar sem autorização): regras de
 > aprovação/reprovação/limite de faltas.
@@ -58,12 +64,18 @@ SistemaChamadas/
 │   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo
 │   └── static/              → css/style.css, js/app.js, icons/ (21 SVGs + favicon.svg)
 ├── data/                    → sistema.db (migra sozinho: celular/comercial + backfill)
-├── backups/                 → backup.bat + pre_migracao_telefones.db (pode apagar após conferir)
+├── backups/                 → .db (backup.bat + pré-importação 2026-09-16; pre_migracao_telefones.db pode apagar após conferir)
+├── logs/                    → reservado para logs
+├── seed/                    → .sql locais (exportar/restaurar; fora do Git)
+├── feather/                 → coleção original Feather (287 SVGs; fonte dos 21 em static/icons)
+├── Export_F10*.xlsx         → exports do Microcamp (fonte da importação; fora do Git)
 ├── importar_excel.py        → LIMPA o banco e importa os exports do Microcamp (ver seção 4)
+├── seed_banco.py            → exportar (.sql) / restaurar / resumo do banco
 ├── gerenciar_dados_teste.py → popular (3 fones) / resetar / resumo
 ├── iniciar.bat              → pendrive: 1º plano + abre navegador após 3s + pause
 ├── iniciar_debug.bat        → PC: python do PATH, 1º plano + pause
-└── backup.bat / requirements.txt / README.md / CONTEXT.md
+├── backup.bat               → copia data\sistema.db p/ backups\ (com timestamp)
+└── requirements.txt / .gitignore / README.md / CONTEXT.md
 ```
 
 ---
@@ -73,10 +85,13 @@ SistemaChamadas/
 > **Dados reais importados** (set/2026): um curso "Informatica", 7 turmas com o
 > código oficial da coluna Turma (QAMC170002, QAMC190003, SBMC080005,
 > SBMC100005, SBMC133005, SGMC170003, SGMC190004), 109 alunos únicos
-> (99 ativos), 110 matrículas (99 ativas), 12 chamadas e 170 presenças
-> (166 do F10 + 4 AUSENTE para Rebecca/Gustavo-SB1330). Matrícula `ativa`
+> (99 ativos), 110 matrículas (99 ativas). Na importação: 12 chamadas e
+> 170 presenças (166 do F10 + 4 AUSENTE para Rebecca/Gustavo-SB1330);
+> em 17/09 o banco já tinha **13 chamadas / 184 presenças** (novas lançadas
+> no sistema — os totais crescem com o uso). Matrícula `ativa`
 > somente para Status Contrato = "Ativo". Prof. Rafael Jonathan Goulart.
 > Backup pré-importação: `backups/sistema_pre_importacao_2026-09-16_184905.db`.
+> Dias confirmados nos dados: QA=quarta, SB=**sábado**, SG=segunda.
 
 ### Aluno — 3 telefones
 `telefone`, `celular`, `comercial` (String 30, anuláveis) + `responsavel` (nome).
@@ -223,13 +238,13 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
 
 ---
 
-## 15. Importação do Microcamp (`importar_excel.py`)
+## 14. Importação do Microcamp (`importar_excel.py`)
 
 - Pega `Export_F10.xlsx` (cadastro) + `Export_F10 - Chamadas.xlsx` (presenças)
   na raiz do projeto e **LIMPA o banco** antes de popular — re-executável.
 - Regras:
   - Turma é nomeada pelo código oficial da coluna "Turma" (ex.: QAMC170002);
-    `dia_semana` é derivado das datas de chamada (QA=quarta, SB=quinta/?, SG=segunda).
+    `dia_semana` é derivado das datas de chamada (QA=quarta, SB=**sábado**, SG=segunda).
   - Matrícula `ativa` só quando Status Contrato = "Ativo"; aluno `status=ativo`
     se tiver alguma matrícula ativa. Não-ativos listados nas chamadas do F10
     entram como **ausentes** (decisão do professor — não herdam o "1" do F10).
@@ -241,9 +256,14 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
 - Pós-importação recomendada: rodar validação (confronto presenças × Excel,
   dia-da-semana × data, duplicatas, WhatsApp) e conferir dashboard/contato.
 
-## 16. Observações para o próximo agente
+## 15. Observações para o próximo agente
 
 - Não instalar libs novas sem justificativa; não reescrever o que funciona.
+- **Pendente sugerido (não feito):** `openpyxl` é usado por `importar_excel.py`
+  mas **não está no `requirements.txt`** — importação falha numa instalação
+  limpa só com `pip install -r requirements.txt`. Ou adicionar lá, ou manter o
+  aviso no README (foi mantido o aviso).
+- `.sql` da pasta `seed/` e `*.xlsx` nunca vão ao Git (dados dos alunos).
 - `.bat` sem letra fixa; janelas ficam abertas (1º plano + `pause`).
 - Templates usam macros (`_icones`, `_pesquisa`); JS compartilhado no `app.js`.
 - Scripts `teste_*.py` ficam em `C:\Users\ALUNO2\AppData\Local\Temp\opencode`
