@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Chamadas — {{ turma.nome }} | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">{{ turma.curso.nome }}</p>
+            <h1>Chamadas — {{ turma.nome }}</h1>
+        </div>
+        <div class="acoes">
+            <a href="{{ url_for('turmas.listar') }}" class="botao botao-secundario">
+                {{ icone("arrow-left") }}Voltar para Turmas
+            </a>
+            {% if linhas %}
+                <button type="button" class="botao botao-primario" id="btn-lancar">
+                    {{ icone("plus-circle") }} Nova chamada
+                </button>
+            {% else %}
+                <a
+                    href="{{ url_for('chamadas.nova', turma_id=turma.id) }}"
+                    class="botao botao-primario"
+                >
+                    {{ icone("plus-circle") }} Nova chamada
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if linhas and chamadas %}
+
+        <p class="legenda-matriz" aria-label="Legenda">
+            <span><span class="amostra amostra-verde"></span>Frequente</span>
+            <span><span class="amostra amostra-amarela"></span>Reposição</span>
+            <span><span class="amostra amostra-vermelha"></span>Ausente</span>
+        </p>
+
+        <form
+            id="form-lancar"
+            method="post"
+            action="{{ url_for('chamadas.nova', turma_id=turma.id) }}"
+            class="painel painel-lancar"
+            hidden
+        >
+            <h2 class="painel-titulo">{{ icone("calendar") }}Lançar chamada</h2>
+            <div class="form-lancar-grade">
+                <div class="campo">
+                    <label for="data-lancar">Data da aula</label>
+                    <input
+                        type="date"
+                        id="data-lancar"
+                        name="data"
+                        required
+                        value="{{ hoje }}"
+                        max="{{ hoje }}"
+                    >
+                </div>
+                <div class="campo">
+                    <label for="conteudo-lancar">Conteúdo da aula</label>
+                    <input
+                        type="text"
+                        id="conteudo-lancar"
+                        name="conteudo"
+                        maxlength="500"
+                        placeholder="Opcional — assunto trabalhado"
+                    >
+                </div>
+                <div class="campo">
+                    <label for="observacao-lancar">Observação</label>
+                    <input
+                        type="text"
+                        id="observacao-lancar"
+                        name="observacao"
+                        maxlength="500"
+                        placeholder="Opcional"
+                    >
+                </div>
+            </div>
+            <div class="acoes" style="margin-top: 12px; flex-wrap: wrap;">
+                <button type="submit" class="botao botao-primario">
+                    {{ icone("check") }}Lançar chamada
+                </button>
+                <button type="button" class="botao botao-secundario" id="lancar-todos">
+                    Todos presentes
+                </button>
+                <button type="button" class="botao botao-secundario" id="lancar-nenhum">
+                    Todos ausentes
+                </button>
+                <button type="button" class="botao botao-secundario" id="lancar-cancelar">
+                    Cancelar
+                </button>
+            </div>
+            <p class="dica">
+                Marque na coluna <strong>Nova</strong> quem veio.
+                Aqui só é possível presente/falta — a reposição é lançada depois, com o botão direito.
+            </p>
+        </form>
+
+        <div class="tabela-envolve">
+
+            <table class="tabela matriz">
+
+                <thead>
+                    <tr>
+                        <th class="matriz-nome">Aluno</th>
+                        {% for chamada in chamadas %}
+                            <th class="celula-check">
+                                <span
+                                    class="data-coluna"
+                                    title="{{ chamada.data.strftime('%d/%m/%Y') }}{% if chamada.conteudo %} · {{ chamada.conteudo }}{% endif %}"
+                                >
+                                    {{ chamada.data.strftime("%d/%m") }}
+                                </span>
+                                <form
+                                    method="post"
+                                    action="{{ url_for('chamadas.excluir', chamada_id=chamada.id) }}"
+                                    data-confirma="Remover a chamada de {{ chamada.data.strftime('%d/%m/%Y') }}?"
+                                    class="form-inline"
+                                >
+                                    <button
+                                        type="submit"
+                                        class="botao botao-perigo btn-icone"
+                                        title="Excluir chamada de {{ chamada.data.strftime('%d/%m/%Y') }}"
+                                        aria-label="Excluir chamada de {{ chamada.data.strftime('%d/%m/%Y') }}"
+                                    >
+                                        {{ icone("trash-2", "icone icone-pequeno") }}
+                                    </button>
+                                </form>
+                            </th>
+                        {% endfor %}
+                        <th class="celula-check coluna-nova" hidden>
+                            <span class="badge badge-infos">Nova</span>
+                        </th>
+                        <th class="centro">Coordenação</th>
+                        <th class="centro">Freq. total</th>
+                    </tr>
+                </thead>
+
+                <tbody id="corpo-matriz">
+                    {% for item in linhas %}
+                        <tr
+                            data-aluno-id="{{ item.aluno.id }}"
+                            {% if item.aluno.flag_coordenacao %}class="linha-coordenacao"{% endif %}
+                        >
+                            <td class="matriz-nome">{{ item.aluno.nome }}</td>
+                            {% for estado in item.estados %}
+                                {% set chamada = chamadas[loop.index0] %}
+                                <td class="celula-check">
+                                    <input
+                                        type="checkbox"
+                                        class="check-presenca"
+                                        data-chamada-id="{{ chamada.id }}"
+                                        data-aluno-id="{{ item.aluno.id }}"
+                                        data-estado="{{ estado }}"
+                                        data-aluno-nome="{{ item.aluno.nome }}"
+                                        data-data="{{ chamada.data.strftime('%d/%m/%Y') }}"
+                                        {{ "checked" if estado != "ausente" }}
+                                        aria-label="Presença de {{ item.aluno.nome }} em {{ chamada.data.strftime('%d/%m/%Y') }}: {{ estado }}"
+                                    >
+                                </td>
+                            {% endfor %}
+                            <td class="celula-check coluna-nova" hidden>
+                                <input
+                                    type="checkbox"
+                                    class="check-presenca check-nova"
+                                    name="presente"
+                                    value="{{ item.aluno.id }}"
+                                    form="form-lancar"
+                                    data-nova="1"
+                                    data-estado="ausente"
+                                    aria-label="Marcar {{ item.aluno.nome }} como presente na nova chamada"
+                                >
+                            </td>
+                            <td class="centro">
+                                {% if item.aluno.flag_coordenacao %}
+                                    <span class="badge badge-aviso">{{ icone("flag", "icone icone-pequeno") }}Coordenação</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">Não</span>
+                                {% endif %}
+                            </td>
+                            <td class="centro">
+                                {% if item.percentual is not none %}
+                                    <span class="badge {{ 'badge-sucesso' if item.percentual >= 50 else 'badge-erro' }} freq-valor">{{ item.percentual|round(1) }}%</span>
+                                    <span class="obs-menos freq-conta">{{ item.estados|select("ne", "ausente")|list|length }}/{{ item.total }}</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <p class="dica">
+            Use o botão direito sobre a checkbox para alterar a presença
+            (ausente, frequente, reposição).
+            Use a lixeira no topo da coluna para excluir a chamada.
+        </p>
+
+    {% elif not linhas %}
+
+        <div class="estado-vazio">
+            <p>Nenhum aluno ativo matriculado nesta turma.</p>
+            <a href="{{ url_for('matriculas.novo') }}" class="botao botao-primario">
+                Matricular alunos
+            </a>
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            <p>Nenhuma chamada registrada para esta turma ainda.</p>
+            <a
+                href="{{ url_for('chamadas.nova', turma_id=turma.id) }}"
+                class="botao botao-primario"
+            >
+                {{ icone("calendar") }}Abrir primeira chamada
+            </a>
+        </div>
+
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    "use strict";
+
+    var NS = window.SistemaChamadas || {};
+
+    function aplicarVisual(cb, estado) {
+        cb.dataset.estado = estado;
+        cb.checked = estado !== "ausente";
+        cb.setAttribute(
+            "aria-label",
+            "Presença de " + cb.dataset.alunoNome +
+            " em " + cb.dataset.data + ": " + estado
+        );
+    }
+
+    function atualizarFreq(tr) {
+        var boxes = tr.querySelectorAll(".check-presenca");
+        var total = boxes.length;
+        if (!total) return;
+        var presentes = 0;
+        boxes.forEach(function (b) { if (b.checked) presentes += 1; });
+        var badge = tr.querySelector(".freq-valor");
+        if (badge) {
+            var pct = Math.round((presentes * 1000) / total) / 10;
+            badge.textContent = pct + "%";
+            badge.classList.toggle("badge-sucesso", pct >= 50);
+            badge.classList.toggle("badge-erro", pct < 50);
+        }
+        var conta = tr.querySelector(".freq-conta");
+        if (conta) conta.textContent = presentes + "/" + total;
+    }
+
+    function salvar(cb, estado, anterior) {
+        var dados = new FormData();
+        dados.append("estado", estado);
+        fetch(
+            "/chamadas/" + cb.dataset.chamadaId +
+            "/presenca/" + cb.dataset.alunoId,
+            {
+                method: "POST",
+                body: dados,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            }
+        )
+        .then(function (resp) { return resp.json(); })
+        .then(function (json) {
+            if (!json.ok) {
+                aplicarVisual(cb, anterior);
+                return;
+            }
+            aplicarVisual(cb, json.estado);
+            var tr = cb.closest("tr");
+            if (tr) atualizarFreq(tr);
+        })
+        .catch(function () { aplicarVisual(cb, anterior); });
+    }
+
+    document.addEventListener("click", function (ev) {
+        var alvo = ev.target;
+        if (!alvo.classList || !alvo.classList.contains("check-presenca")) return;
+        if (alvo.hasAttribute("data-nova")) return;
+        ev.preventDefault();
+    });
+
+    document.addEventListener("change", function (ev) {
+        var alvo = ev.target;
+        if (!alvo.classList || !alvo.classList.contains("check-presenca")) return;
+        if (alvo.hasAttribute("data-nova")) {
+            alvo.dataset.estado = alvo.checked ? "frequente" : "ausente";
+            return;
+        }
+        aplicarVisual(alvo, alvo.dataset.estado);
+    });
+
+    document.addEventListener("contextmenu", function (ev) {
+        var alvo = ev.target;
+        if (!alvo.classList || !alvo.classList.contains("check-presenca")) return;
+        if (alvo.hasAttribute("data-nova")) return;
+        ev.preventDefault();
+        if (!NS.abrirMenuEstado) return;
+        var anterior = alvo.dataset.estado;
+        NS.abrirMenuEstado(alvo, anterior, function (valor) {
+            if (valor === anterior) return;
+            aplicarVisual(alvo, valor);
+            salvar(alvo, valor, anterior);
+        });
+    });
+
+    var painel = document.getElementById("form-lancar");
+    var btnLancar = document.getElementById("btn-lancar");
+
+    function definirModoLancar(ativo) {
+        document.body.classList.toggle("modo-lancar", ativo);
+        if (painel) painel.hidden = !ativo;
+        document.querySelectorAll(".coluna-nova").forEach(function (cel) {
+            cel.hidden = !ativo;
+        });
+        if (!ativo) {
+            if (painel) painel.reset();
+            document.querySelectorAll(".check-nova").forEach(function (cb) {
+                cb.checked = false;
+                cb.dataset.estado = "ausente";
+            });
+        } else {
+            var campoData = document.getElementById("data-lancar");
+            if (campoData) campoData.focus();
+        }
+    }
+
+    if (btnLancar) btnLancar.addEventListener("click", function () {
+        definirModoLancar(!document.body.classList.contains("modo-lancar"));
+    });
+
+    var btnCancelar = document.getElementById("lancar-cancelar");
+    if (btnCancelar) btnCancelar.addEventListener("click", function () {
+        definirModoLancar(false);
+    });
+
+    function marcarNova(marcar) {
+        document.querySelectorAll(".check-nova").forEach(function (cb) {
+            cb.checked = marcar;
+            cb.dataset.estado = marcar ? "frequente" : "ausente";
+        });
+    }
+
+    var btnTodos = document.getElementById("lancar-todos");
+    if (btnTodos) btnTodos.addEventListener("click", function () { marcarNova(true); });
+    var btnNenhum = document.getElementById("lancar-nenhum");
+    if (btnNenhum) btnNenhum.addEventListener("click", function () { marcarNova(false); });
+})();
+</script>
+{% endblock %}

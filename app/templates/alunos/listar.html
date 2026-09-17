@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% from "_pesquisa.html" import barra_pesquisa, contagem_pesquisa %}
+
+{% block titulo %}Alunos | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Alunos</p>
+            <h1>Alunos</h1>
+        </div>
+        <a href="{{ url_for('alunos.novo') }}" class="botao botao-primario">
+            {{ icone("plus-circle") }} Novo aluno
+        </a>
+    </div>
+
+    {{ barra_pesquisa(
+        url_for('alunos.listar'),
+        q,
+        'Pesquisar aluno por nome... (ex.: joao acha João)',
+        'pesquisa-aluno',
+        'corpo-alunos',
+        'contagem-alunos'
+    ) }}
+
+    {% if q %}
+        {{ contagem_pesquisa(
+            'contagem-alunos',
+            (alunos|length|string + ' resultado(s) para "' + q + '"') if alunos else ('Nenhum resultado para "' + q + '"')
+        ) }}
+    {% else %}
+        {{ contagem_pesquisa('contagem-alunos') }}
+    {% endif %}
+
+    {% if alunos %}
+
+        <div class="tabela-envolve">
+
+            <table class="tabela" id="tabela-alunos">
+
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefones</th>
+                        <th>Responsável</th>
+                        <th>Coordenação</th>
+                        <th>Situação</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody id="corpo-alunos">
+                    {% for aluno in alunos %}
+                        <tr data-filtro="{{ aluno.nome }}">
+                            <td>{{ aluno.nome }}</td>
+                            <td>
+                                {% set fones = [aluno.telefone, aluno.celular, aluno.comercial] | select | list %}
+                                {% if fones %}
+                                    {% for fone in fones %}
+                                        <div>{{ fone }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ aluno.responsavel or "—" }}</td>
+                            <td>
+                                {% if aluno.flag_coordenacao %}
+                                    <span class="badge badge-aviso">{{ icone("flag", "icone icone-pequeno") }}Coordenação</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">Não</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if aluno.status == "ativo" %}
+                                    <span class="badge badge-sucesso">Ativo</span>
+                                {% else %}
+                                    <span class="badge badge-erro">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    <a
+                                        href="{{ url_for('alunos.editar', aluno_id=aluno.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        {{ icone("edit") }}Editar
+                                    </a>
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('alunos.excluir', aluno_id=aluno.id) }}"
+                                        data-confirma="Remover o aluno '{{ aluno.nome }}' e todos os vínculos?"
+                                        class="form-inline"
+                                    >
+                                        <button
+                                            type="submit"
+                                            class="botao botao-perigo"
+                                        >
+                                            {{ icone("trash-2") }}Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    <tr class="linha-sem-resultado" hidden>
+                        <td colspan="6" class="centro obs-menos">
+                            Nenhum aluno corresponde à pesquisa digitada.
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            {% if q %}
+                <p>Nenhum aluno encontrado para "{{ q }}".</p>
+                <a href="{{ url_for('alunos.listar') }}" class="botao botao-secundario">
+                    Limpar pesquisa
+                </a>
+            {% else %}
+                <p>Nenhum aluno cadastrado ainda.</p>
+                <a href="{{ url_for('alunos.novo') }}" class="botao botao-primario">
+                    {{ icone("plus-circle") }}Cadastrar primeiro aluno
+                </a>
+            {% endif %}
+        </div>
+
+    {% endif %}
+
+{% endblock %}

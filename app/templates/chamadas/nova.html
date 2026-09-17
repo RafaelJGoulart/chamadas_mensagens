@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Nova chamada — {{ turma.nome }} | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">{{ turma.curso.nome }}</p>
+            <h1>Nova chamada — {{ turma.nome }}</h1>
+        </div>
+        <a
+            href="{{ url_for('chamadas.por_turma', turma_id=turma.id) }}"
+            class="botao botao-secundario"
+        >
+            {{ icone("arrow-left") }}Voltar
+        </a>
+    </div>
+
+    <form method="post" class="formulario">
+
+        <div class="campo">
+            <label for="data">Data da aula</label>
+            <input
+                type="date"
+                id="data"
+                name="data"
+                required
+                value="{{ dados.data if dados else hoje }}"
+                max="{{ hoje }}"
+            >
+        </div>
+
+        <div class="campo">
+            <label for="conteudo">Conteúdo da aula</label>
+            <textarea
+                id="conteudo"
+                name="conteudo"
+                rows="3"
+                placeholder="Opcional — assunto trabalhado"
+            >{{ dados.conteudo if dados else '' }}</textarea>
+        </div>
+
+        <div class="campo">
+            <label for="observacao">Observação</label>
+            <textarea
+                id="observacao"
+                name="observacao"
+                rows="2"
+                placeholder="Opcional"
+            >{{ dados.observacao if dados else '' }}</textarea>
+        </div>
+
+        {% if alunos %}
+            <div class="campo">
+                <label>Presenças — marque quem veio</label>
+                <div class="acoes" style="margin-bottom: 8px;">
+                    <button type="button" class="botao botao-secundario" id="todos-presentes">
+                        Todos presentes
+                    </button>
+                    <button type="button" class="botao botao-secundario" id="todos-ausentes">
+                        Todos ausentes
+                    </button>
+                </div>
+                <ul class="lista-lancar" id="lista-lancar">
+                    {% for aluno in alunos %}
+                        <li>
+                            <label class="lancar-linha">
+                                <input
+                                    type="checkbox"
+                                    class="check-presenca"
+                                    name="presente"
+                                    value="{{ aluno.id }}"
+                                    data-estado="ausente"
+                                    aria-label="Marcar {{ aluno.nome }} como presente"
+                                >
+                                <span class="lancar-nome">{{ aluno.nome }}</span>
+                                {% if aluno.flag_coordenacao %}
+                                    <span class="badge badge-aviso">{{ icone("flag", "icone icone-pequeno") }}Coordenação</span>
+                                {% endif %}
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="ajuda" style="padding-left: 0;">
+                    Aqui só é possível marcar presente/falta.
+                    A reposição é lançada depois, na tela da turma, com o botão direito.
+                </p>
+            </div>
+        {% else %}
+            <p class="dica">
+                Nenhum aluno ativo matriculado nesta turma — a chamada será criada sem presenças.
+            </p>
+        {% endif %}
+
+        <div class="form-acoes">
+            <button type="submit" class="botao botao-primario">
+                {{ icone("calendar") }}Lançar chamada
+            </button>
+            <a
+                href="{{ url_for('chamadas.por_turma', turma_id=turma.id) }}"
+                class="botao botao-secundario"
+            >
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    "use strict";
+
+    function marcarTodos(marcar) {
+        document.querySelectorAll("#lista-lancar .check-presenca").forEach(function (cb) {
+            cb.checked = marcar;
+            cb.dataset.estado = marcar ? "frequente" : "ausente";
+        });
+    }
+
+    var btnTodos = document.getElementById("todos-presentes");
+    if (btnTodos) btnTodos.addEventListener("click", function () { marcarTodos(true); });
+
+    var btnNenhum = document.getElementById("todos-ausentes");
+    if (btnNenhum) btnNenhum.addEventListener("click", function () { marcarTodos(false); });
+
+    document.addEventListener("change", function (ev) {
+        var alvo = ev.target;
+        if (!alvo.classList || !alvo.classList.contains("check-presenca")) return;
+        if (!alvo.closest("#lista-lancar")) return;
+        alvo.dataset.estado = alvo.checked ? "frequente" : "ausente";
+    });
+})();
+</script>
+{% endblock %}

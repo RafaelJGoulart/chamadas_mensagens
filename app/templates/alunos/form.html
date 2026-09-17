@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}
+    {{ "Novo aluno" if not aluno else "Editar aluno" }} | Sistema de Chamadas
+{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Alunos</p>
+            <h1>{{ "Novo aluno" if not aluno else "Editar aluno" }}</h1>
+        </div>
+        <a href="{{ url_for('alunos.listar') }}" class="botao botao-secundario">
+            {{ icone("arrow-left") }}Voltar
+        </a>
+    </div>
+
+    <form method="post" class="formulario">
+
+        <div class="campo">
+            <label for="nome">Nome completo</label>
+            <input
+                type="text"
+                id="nome"
+                name="nome"
+                required
+                maxlength="160"
+                value="{{ aluno.nome if aluno else '' }}"
+                autofocus
+            >
+        </div>
+
+        <div class="linha-campos">
+
+            <div class="campo">
+                <label for="telefone">Telefone</label>
+                <input
+                    type="text"
+                    id="telefone"
+                    name="telefone"
+                    maxlength="30"
+                    value="{{ aluno.telefone if aluno else '' }}"
+                >
+            </div>
+
+            <div class="campo">
+                <label for="celular">Celular</label>
+                <input
+                    type="text"
+                    id="celular"
+                    name="celular"
+                    maxlength="30"
+                    value="{{ aluno.celular if aluno else '' }}"
+                >
+            </div>
+
+        </div>
+
+        <div class="linha-campos">
+
+            <div class="campo">
+                <label for="comercial">Comercial</label>
+                <input
+                    type="text"
+                    id="comercial"
+                    name="comercial"
+                    maxlength="30"
+                    value="{{ aluno.comercial if aluno else '' }}"
+                >
+            </div>
+
+            <div class="campo">
+                <label for="responsavel">Responsável</label>
+                <input
+                    type="text"
+                    id="responsavel"
+                    name="responsavel"
+                    maxlength="160"
+                    value="{{ aluno.responsavel if aluno else '' }}"
+                >
+            </div>
+
+        </div>
+
+        {% if not aluno %}
+            <div class="campo">
+                <label for="turma_id">Matricular nesta turma</label>
+                <select id="turma_id" name="turma_id">
+                    <option value="">— Não matricular agora —</option>
+                    {% for turma in turmas %}
+                        <option
+                            value="{{ turma.id }}"
+                            {{ "selected" if turma_selecionada|string == turma.id|string }}
+                        >
+                            {{ turma.nome }} ({{ turma.curso.nome }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="ajuda" style="padding-left: 0;">
+                    Se a turma já tiver chamadas lançadas, o aluno entra com
+                    ausência em todas elas.
+                </p>
+            </div>
+        {% endif %}
+
+        <div class="campo campo-checkbox">
+            <label>
+                <input
+                    type="checkbox"
+                    name="flag_coordenacao"
+                    {{ "checked" if aluno and aluno.flag_coordenacao }}
+                >
+                Acompanhamento pela coordenação
+            </label>
+            <p class="ajuda">
+                O aluno continua nas chamadas e nos cálculos de frequência.
+            </p>
+        </div>
+
+        <div class="form-acoes">
+            <button type="submit" class="botao botao-primario">
+                {{ icone("check") }}Salvar
+            </button>
+            <a href="{{ url_for('alunos.listar') }}" class="botao botao-secundario">
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+
+{% endblock %}

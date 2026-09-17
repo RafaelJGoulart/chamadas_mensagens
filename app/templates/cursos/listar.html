@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Cursos | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Cursos</p>
+            <h1>Cursos</h1>
+        </div>
+        <a href="{{ url_for('cursos.novo') }}" class="botao botao-primario">
+            {{ icone("plus-circle") }} Novo curso
+        </a>
+    </div>
+
+    {% if cursos %}
+
+        <div class="tabela-envolve">
+
+            <table class="tabela">
+
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Turmas</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for curso in cursos %}
+                        <tr>
+                            <td>{{ curso.nome }}</td>
+                            <td>{{ curso.descricao or "—" }}</td>
+                            <td>
+                                <span class="badge">{{ curso.turmas.count() }}</span>
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    <a
+                                        href="{{ url_for('cursos.editar', curso_id=curso.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        {{ icone("edit") }}Editar
+                                    </a>
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('cursos.excluir', curso_id=curso.id) }}"
+                                        data-confirma="Remover o curso '{{ curso.nome }}' e todas as turmas vinculadas?"
+                                        class="form-inline"
+                                    >
+                                        <button
+                                            type="submit"
+                                            class="botao botao-perigo"
+                                        >
+                                            {{ icone("trash-2") }}Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            <p>Nenhum curso cadastrado ainda.</p>
+            <a href="{{ url_for('cursos.novo') }}" class="botao botao-primario">
+                {{ icone("plus-circle") }}Cadastrar primeiro curso
+            </a>
+        </div>
+
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Dashboard | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Início</p>
+            <h1>Dashboard</h1>
+        </div>
+        <form method="get" action="{{ url_for('dashboard.inicio') }}" class="filtro-mes">
+            <label for="mes">Mês</label>
+            <select name="mes" id="mes">
+                {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {{ "selected" if m == mes }}>
+                        {{ meses[m - 1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <label for="ano">Ano</label>
+            <select name="ano" id="ano">
+                {% for a in range(ultimo_ano - 3, ultimo_ano + 1) %}
+                    <option value="{{ a }}" {{ "selected" if a == ano }}>
+                        {{ a }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="botao botao-secundario">Aplicar</button>
+        </form>
+    </div>
+
+    <div class="cartoes cartoes-indicadores">
+
+        <div class="cartao">
+            <span class="cartao-topo">
+                {{ icone("user", "icone icone-grande cartao-icone") }}
+                <span class="cartao-valor">{{ indicadores.alunos_ativos }}</span>
+            </span>
+            <span class="cartao-rotulo">Alunos ativos</span>
+        </div>
+
+        <div class="cartao">
+            <span class="cartao-topo">
+                {{ icone("users", "icone icone-grande cartao-icone") }}
+                <span class="cartao-valor">{{ indicadores.turmas_ativas }}</span>
+            </span>
+            <span class="cartao-rotulo">Turmas ativas</span>
+        </div>
+
+        <div class="cartao">
+            <span class="cartao-topo">
+                {{ icone("calendar", "icone icone-grande cartao-icone") }}
+                <span class="cartao-valor">
+                    {{ estatisticas.total_alunos_com_dados }}
+                </span>
+            </span>
+            <span class="cartao-rotulo">
+                Alunos com dados em {{ meses[mes - 1] }}/{{ ano }}
+            </span>
+        </div>
+
+        <div class="cartao cartao-atencao">
+            <span class="cartao-topo">
+                {{ icone("flag", "icone icone-grande cartao-icone") }}
+                <span class="cartao-valor">{{ indicadores.alunos_atencao }}</span>
+            </span>
+            <span class="cartao-rotulo">Alunos na coordenação</span>
+        </div>
+
+    </div>
+
+    <div class="grade-dupla">
+
+        <section class="painel">
+            <h2 class="painel-titulo">{{ icone("pie-chart") }}Frequência geral — {{ meses[mes - 1] }}/{{ ano }}</h2>
+
+            {% if estatisticas.total_alunos_com_dados %}
+
+                <div class="grafico-barras">
+
+                    <div class="grafico-linha">
+                        <div class="grafico-legenda">
+                            <span>Frequentes (≥ 50%)</span>
+                            <strong>{{ estatisticas.alunos_frequentes }}
+                                ({{ estatisticas.percentual_frequentes|round(1) }}%)
+                            </strong>
+                        </div>
+                        <div class="grafico-trilha">
+                            <div
+                                class="grafico-preenchimento preenchimento-sucesso"
+                                style="width: {{ estatisticas.percentual_frequentes|round(1) }}%;"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div class="grafico-linha">
+                        <div class="grafico-legenda">
+                            <span>Abaixo de 50%</span>
+                            <strong>{{ estatisticas.alunos_abaixo }}
+                                ({% if estatisticas.percentual_frequentes is not none %}{{ (100 - estatisticas.percentual_frequentes)|round(1) }}{% else %}0{% endif %}%)
+                            </strong>
+                        </div>
+                        <div class="grafico-trilha">
+                            <div
+                                class="grafico-preenchimento preenchimento-aviso"
+                                style="width: {% if estatisticas.percentual_frequentes is not none %}{{ (100 - estatisticas.percentual_frequentes)|round(1) }}{% else %}0{% endif %}%;"
+                            ></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="painel-vazio">
+                    <p>Nenhuma chamada registrada neste mês.</p>
+                </div>
+
+            {% endif %}
+        </section>
+
+        <section class="painel">
+            <h2 class="painel-titulo">{{ icone("bar-chart-2") }}Frequência por turma — {{ meses[mes - 1] }}/{{ ano }}</h2>
+
+            {% if estatisticas.por_turma %}
+
+                <div class="grafico-barras">
+
+                    {% for item in estatisticas.por_turma %}
+                        <div class="grafico-linha">
+                            <div class="grafico-legenda">
+                                <a
+                                    href="{{ url_for('chamadas.por_turma', turma_id=item.turma.id) }}"
+                                    class="grafico-nome-turma"
+                                >
+                                    {{ item.turma.nome }}
+                                </a>
+                                <strong>
+                                    {{ item.frequentes }}/{{ item.total }}
+                                    ({{ (item.percentual if item.percentual is not none else 0)|round(1) }}%)
+                                </strong>
+                            </div>
+                            <div class="grafico-trilha">
+                                <div
+                                    class="grafico-preenchimento preenchimento-turma"
+                                    style="width: {{ (item.percentual if item.percentual is not none else 0)|round(1) }}%;"
+                                ></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="painel-vazio">
+                    <p>Nenhum dado de frequência neste mês.</p>
+                </div>
+
+            {% endif %}
+        </section>
+
+    </div>
+
+    <div class="grade-dupla grade-menor">
+
+        <section class="painel">
+            <h2 class="painel-titulo">{{ icone("clock") }}Chamadas recentes</h2>
+
+            {% if chamadas_recentes %}
+
+                <ul class="lista-simples">
+                    {% for item in chamadas_recentes %}
+                        <li>
+                            <a
+                                href="{{ url_for('chamadas.por_turma', turma_id=item.chamada.turma_id) }}"
+                                class="lista-simples-link"
+                            >
+                                <span>
+                                    <strong>{{ item.chamada.turma.nome }}</strong>
+                                    · {{ item.chamada.data.strftime("%d/%m/%Y") }}
+                                </span>
+                                <span class="lista-simples-badges">
+                                    <span class="badge badge-sucesso">{{ item.contagem["frequente"] }}</span>
+                                    <span class="badge badge-reposicao">{{ item.contagem["reposicao"] }}</span>
+                                    <span class="badge badge-erro">{{ item.contagem["ausente"] }}</span>
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+            {% else %}
+
+                <div class="painel-vazio">
+                    <p>Nenhuma chamada registrada.</p>
+                </div>
+
+            {% endif %}
+        </section>
+
+        <section class="painel">
+            <h2 class="painel-titulo">{{ icone("flag") }}Alunos que precisam de atenção</h2>
+
+            {% if alunos_atencao %}
+
+                <ul class="lista-simples">
+                    {% for aluno in alunos_atencao %}
+                        <li>
+                            <a
+                                href="{{ url_for('alunos.editar', aluno_id=aluno.id) }}"
+                                class="lista-simples-link"
+                            >
+                                <span>{{ aluno.nome }}</span>
+                                <span class="badge badge-aviso">Coordenação</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+            {% else %}
+
+                <div class="painel-vazio">
+                    <p>Nenhum aluno sinalizado.</p>
+                </div>
+
+            {% endif %}
+        </section>
+
+    </div>
+
+{% endblock %}

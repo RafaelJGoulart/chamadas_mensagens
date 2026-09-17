@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Turmas | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Turmas</p>
+            <h1>Turmas</h1>
+        </div>
+        <a href="{{ url_for('turmas.novo') }}" class="botao botao-primario">
+            {{ icone("plus-circle") }} Nova turma
+        </a>
+    </div>
+
+    {% if turmas %}
+
+        <div class="tabela-envolve">
+
+            <table class="tabela">
+
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Curso</th>
+                        <th>Dia</th>
+                        <th>Horário</th>
+                        <th>Alunos</th>
+                        <th>Situação</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for turma in turmas %}
+                        <tr>
+                            <td>{{ turma.nome }}</td>
+                            <td>{{ turma.curso.nome }}</td>
+                            <td>{{ turma.dia_semana }}</td>
+                            <td>
+                                {% if turma.horario_inicio %}
+                                    {{ turma.horario_inicio.strftime("%H:%M") }}
+                                    às
+                                    {{ turma.horario_fim.strftime("%H:%M") }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge">{{ turma.matriculas.count() }}</span>
+                            </td>
+                            <td>
+                                {% if turma.ativa %}
+                                    <span class="badge badge-sucesso">Ativa</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">Inativa</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    <a
+                                        href="{{ url_for('chamadas.por_turma', turma_id=turma.id) }}"
+                                        class="botao botao-primario"
+                                    >
+                                        {{ icone("calendar") }}Chamadas
+                                    </a>
+                                    <a
+                                        href="{{ url_for('turmas.editar', turma_id=turma.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        {{ icone("edit") }}Editar
+                                    </a>
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('turmas.excluir', turma_id=turma.id) }}"
+                                        data-confirma="Remover a turma '{{ turma.nome }}' e seus vínculos?"
+                                        class="form-inline"
+                                    >
+                                        <button
+                                            type="submit"
+                                            class="botao botao-perigo"
+                                        >
+                                            {{ icone("trash-2") }}Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            <p>Nenhuma turma cadastrada ainda.</p>
+            <a href="{{ url_for('turmas.novo') }}" class="botao botao-primario">
+                {{ icone("plus-circle") }}Cadastrar primeira turma
+            </a>
+        </div>
+
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block titulo %}Chamadas | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Chamadas</p>
+            <h1>Chamadas</h1>
+        </div>
+    </div>
+
+    {% if turmas %}
+
+        <div class="tabela-envolve">
+
+            <table class="tabela">
+
+                <thead>
+                    <tr>
+                        <th>Turma</th>
+                        <th>Curso</th>
+                        <th>Dia / horário</th>
+                        <th>Alunos</th>
+                        <th>Chamadas</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for turma in turmas %}
+                        <tr>
+                            <td>{{ turma.nome }}</td>
+                            <td>{{ turma.curso.nome }}</td>
+                            <td>
+                                {{ turma.dia_semana }}
+                                {% if turma.horario_inicio %}
+                                    — {{ turma.horario_inicio.strftime("%H:%M") }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge">{{ turma.matriculas.filter_by(ativa=True).count() }}</span>
+                            </td>
+                            <td>
+                                <span class="badge">{{ turma.chamadas.count() }}</span>
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    <a
+                                        href="{{ url_for('chamadas.por_turma', turma_id=turma.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        Histórico
+                                    </a>
+                                    <a
+                                        href="{{ url_for('chamadas.nova', turma_id=turma.id) }}"
+                                        class="botao botao-primario"
+                                    >
+                                        Nova chamada
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            <p>Nenhuma turma ativa para abrir chamada.</p>
+            <a href="{{ url_for('turmas.novo') }}" class="botao botao-primario">
+                Cadastrar turma
+            </a>
+        </div>
+
+    {% endif %}
+
+{% endblock %}

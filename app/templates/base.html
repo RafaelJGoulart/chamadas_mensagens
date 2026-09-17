@@ -1,0 +1,98 @@
+{% from "_icones.html" import icone %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#060708">
+
+    <title>{% block titulo %}Sistema de Chamadas{% endblock %}</title>
+
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="{{ url_for('static', filename='icons/favicon.svg') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    {% include "_sprite.html" %}
+
+    <a class="pular-navegacao" href="#conteudo-principal">
+        Pular para o conteúdo
+    </a>
+
+    <header class="topo">
+        <div class="topo-conteudo">
+            <a href="{{ url_for('dashboard.inicio') }}" class="marca">
+                <span class="marca-icone" aria-hidden="true">{{ icone("check-square") }}</span>
+                Sistema de Chamadas
+            </a>
+
+            <nav class="nav" aria-label="Menu principal">
+                <a
+                    href="{{ url_for('cursos.listar') }}"
+                    {% if request.endpoint and request.endpoint.startswith("cursos.") %}aria-current="page"{% endif %}
+                >{{ icone("book-open") }}Cursos</a>
+                <a
+                    href="{{ url_for('turmas.listar') }}"
+                    {% if request.endpoint and (request.endpoint.startswith("turmas.") or request.endpoint.startswith("chamadas.")) %}aria-current="page"{% endif %}
+                >{{ icone("users") }}Turmas</a>
+                <a
+                    href="{{ url_for('alunos.listar') }}"
+                    {% if request.endpoint and request.endpoint.startswith("alunos.") %}aria-current="page"{% endif %}
+                >{{ icone("user") }}Alunos</a>
+                <a
+                    href="{{ url_for('matriculas.listar') }}"
+                    {% if request.endpoint and request.endpoint.startswith("matriculas.") %}aria-current="page"{% endif %}
+                >{{ icone("clipboard") }}Matrículas</a>
+                <a
+                    href="{{ url_for('contato.listar') }}"
+                    {% if request.endpoint and request.endpoint.startswith("contato.") %}aria-current="page"{% endif %}
+                >{{ icone("phone") }}Contato</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="conteudo" id="conteudo-principal">
+
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% if mensagens %}
+                <div class="flash-lista" aria-live="polite">
+                    {% for categoria, mensagem in mensagens %}
+                        <div class="flash flash-{{ categoria }}" role="status">
+                            <span class="flash-texto">{{ mensagem }}</span>
+                            <button
+                                type="button"
+                                class="flash-fechar"
+                                aria-label="Fechar aviso"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block conteudo %}{% endblock %}
+
+    </main>
+
+    <footer class="rodape">
+        <p>Sistema de Chamadas · uso local</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+
+</body>
+
+</html>

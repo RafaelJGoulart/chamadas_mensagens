@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Banco de dados — NUNCA vai para o GitHub
+data/
+backups/
+
+# Copias de seguranca geradas por seed_banco.py (dados reais dos alunos)
+seed/*.sql
+
+# Fontes de dados do Microcamp (contem dados dos alunos)
+*.xlsx
+
+# Logs
+logs/
+
+# Sistema / editor
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,6 @@
+{# Macro de icones: usa o sprite embutido em _sprite.html (incluido no base.html).
+   Uso: {% from "_icones.html" import icone %} ... {{ icone("calendar") }}
+   Cor e tamanho herdam do CSS via currentColor (.icone, .icone-pequeno...). #}
+{% macro icone(nome, classe="icone") -%}
+<svg class="{{ classe }}" aria-hidden="true" focusable="false"><use href="#{{ nome }}"></use></svg>
+{%- endmacro %}

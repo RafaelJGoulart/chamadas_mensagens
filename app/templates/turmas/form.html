@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}
+    {{ "Nova turma" if not turma else "Editar turma" }} | Sistema de Chamadas
+{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Turmas</p>
+            <h1>{{ "Nova turma" if not turma else "Editar turma" }}</h1>
+        </div>
+        <a href="{{ url_for('turmas.listar') }}" class="botao botao-secundario">
+            {{ icone("arrow-left") }}Voltar
+        </a>
+    </div>
+
+    <form method="post" class="formulario">
+
+        <div class="campo">
+            <label for="curso_id">Curso</label>
+            <select id="curso_id" name="curso_id" required autofocus>
+                <option value="">Selecione um curso</option>
+                {% for curso in cursos %}
+                    <option
+                        value="{{ curso.id }}"
+                        {{ "selected" if turma and turma.curso_id == curso.id }}
+                    >
+                        {{ curso.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="nome">Nome da turma</label>
+            <input
+                type="text"
+                id="nome"
+                name="nome"
+                required
+                maxlength="120"
+                value="{{ turma.nome if turma else '' }}"
+            >
+        </div>
+
+        <div class="campo">
+            <label for="dia_semana">Dia da semana</label>
+            <select id="dia_semana" name="dia_semana" required>
+                <option value="">Selecione o dia</option>
+                {% for dia in dias_semana %}
+                    <option
+                        value="{{ dia }}"
+                        {{ "selected" if turma and turma.dia_semana == dia }}
+                    >
+                        {{ dia }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="linha-campos">
+
+            <div class="campo">
+                <label for="horario_inicio">Horário inicial</label>
+                <input
+                    type="time"
+                    id="horario_inicio"
+                    name="horario_inicio"
+                    value="{{ turma.horario_inicio.strftime('%H:%M') if turma and turma.horario_inicio else '' }}"
+                >
+            </div>
+
+            <div class="campo">
+                <label for="horario_fim">Horário final</label>
+                <input
+                    type="time"
+                    id="horario_fim"
+                    name="horario_fim"
+                    value="{{ turma.horario_fim.strftime('%H:%M') if turma and turma.horario_fim else '' }}"
+                >
+            </div>
+
+        </div>
+
+        <div class="campo campo-checkbox">
+            <label>
+                <input
+                    type="checkbox"
+                    name="ativa"
+                    {{ "checked" if not turma or turma.ativa }}
+                >
+                Turma ativa
+            </label>
+        </div>
+
+        <div class="form-acoes">
+            <button type="submit" class="botao botao-primario">
+                {{ icone("check") }}Salvar
+            </button>
+            <a href="{{ url_for('turmas.listar') }}" class="botao botao-secundario">
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+
+{% endblock %}

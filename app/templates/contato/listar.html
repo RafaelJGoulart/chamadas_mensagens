@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Contato | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Contato</p>
+            <h1>Baixa frequência — {{ meses[mes - 1] }}/{{ ano }}</h1>
+            <p class="subtitulo">
+                Alunos ativos, sem flag de coordenação e com frequência abaixo de {{ limite|round(1) }}% no mês.
+            </p>
+        </div>
+        <form method="get" action="{{ url_for('contato.listar') }}" class="filtro-mes">
+            <label for="mes">Mês</label>
+            <select name="mes" id="mes">
+                {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {{ "selected" if m == mes }}>
+                        {{ meses[m - 1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <label for="ano">Ano</label>
+            <select name="ano" id="ano">
+                {% for a in range(ultimo_ano - 3, ultimo_ano + 1) %}
+                    <option value="{{ a }}" {{ "selected" if a == ano }}>
+                        {{ a }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="botao botao-secundario">Aplicar</button>
+        </form>
+    </div>
+
+    {% if itens %}
+
+        <p class="contagem-pesquisa" aria-live="polite">
+            {{ itens|length }} aluno(s) com frequência abaixo de {{ limite|round(1) }}% em {{ meses[mes - 1] }}/{{ ano }}.
+        </p>
+
+        <div class="tabela-envolve">
+
+            <table class="tabela">
+
+                <thead>
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Turmas no mês</th>
+                        <th class="centro">Frequência</th>
+                        <th class="centro">Faltas</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in itens %}
+                        <tr>
+                            <td>{{ item.aluno.nome }}</td>
+                            <td>{{ item.turmas|join(", ") or "—" }}</td>
+                            <td class="centro">
+                                <span class="badge badge-erro">{{ icone("alert-triangle", "icone icone-pequeno") }}{{ item.percentual|round(1) }}%</span>
+                                <span class="obs-menos">{{ item.presentes }}/{{ item.total }}</span>
+                            </td>
+                            <td class="centro">
+                                <span class="badge badge-aviso">{{ item.faltas }}</span>
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    {% if item.telefones %}
+                                        <button
+                                            type="button"
+                                            class="botao botao-primario abrir-contato"
+                                            data-nome="{{ item.aluno.nome }}"
+                                            data-telefones="{{ item.telefones|tojson|forceescape }}"
+                                            data-mensagem="{{ item.mensagem }}"
+                                        >
+                                            {{ icone("message-circle") }}Mensagem
+                                        </button>
+                                    {% else %}
+                                        <span class="badge badge-neutro" title="Aluno sem telefone válido cadastrado">Sem telefone</span>
+                                    {% endif %}
+                                    <a
+                                        href="{{ url_for('alunos.editar', aluno_id=item.aluno.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        {{ icone("edit") }}Editar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <p class="dica">
+            O botão WhatsApp abre o link gratuito wa.me com mensagem pronta em nova aba.
+            Números fictícios/de teste podem não abrir conversa real.
+        </p>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            <p>Nenhum aluno ativo sem flag de coordenação abaixo de {{ limite|round(1) }}% em {{ meses[mes - 1] }}/{{ ano }}.</p>
+            <a href="{{ url_for('dashboard.inicio', mes=mes, ano=ano) }}" class="botao botao-secundario">
+                Ver dashboard do mês
+            </a>
+        </div>
+
+    {% endif %}
+
+    <div class="modal-fundo" id="modal-contato" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-contato-titulo">
+            <h2 id="modal-contato-titulo">Enviar mensagem</h2>
+            <p id="modal-contato-nome"></p>
+            <div class="campo" style="margin-bottom: 16px;">
+                <label>Números disponíveis</label>
+                <div class="acoes" id="modal-contato-links" style="flex-wrap: wrap;"></div>
+            </div>
+            <div class="campo">
+                <label>Mensagem pronta</label>
+                <p class="ajuda" id="modal-contato-msg" style="padding-left: 0;"></p>
+            </div>
+            <div class="modal-acoes">
+                <button type="button" class="botao botao-secundario" id="modal-contato-fechar">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    "use strict";
+
+    var fundo = document.getElementById("modal-contato");
+    if (!fundo) return;
+    var nomeEl = document.getElementById("modal-contato-nome");
+    var linksEl = document.getElementById("modal-contato-links");
+    var msgEl = document.getElementById("modal-contato-msg");
+    var btnFechar = document.getElementById("modal-contato-fechar");
+
+    function fechar() {
+        fundo.classList.remove("aberto");
+        fundo.setAttribute("aria-hidden", "true");
+    }
+
+    function abrir(botao) {
+        var telefones = [];
+        try {
+            telefones = JSON.parse(botao.dataset.telefones || "[]");
+        } catch (e) {
+            telefones = [];
+        }
+        nomeEl.textContent = botao.dataset.nome || "";
+        msgEl.textContent = botao.dataset.mensagem || "";
+        linksEl.innerHTML = "";
+        telefones.forEach(function (tel) {
+            var link = document.createElement("a");
+            link.href = tel.wa_link;
+            link.target = "_blank";
+            link.rel = "noopener";
+            link.className = "botao botao-primario";
+            link.textContent = tel.rotulo + ": " + tel.exibido;
+            linksEl.append(link);
+        });
+        fundo.classList.add("aberto");
+        fundo.setAttribute("aria-hidden", "false");
+        btnFechar.focus();
+    }
+
+    document.addEventListener("click", function (ev) {
+        var botao = ev.target.closest(".abrir-contato");
+        if (botao) {
+            abrir(botao);
+            return;
+        }
+        if (ev.target === fundo) fechar();
+    });
+
+    btnFechar.addEventListener("click", fechar);
+
+    document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") fechar();
+    });
+})();
+</script>
+{% endblock %}

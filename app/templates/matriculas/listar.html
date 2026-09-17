@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% from "_pesquisa.html" import barra_pesquisa, contagem_pesquisa %}
+
+{% block titulo %}Matrículas | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Matrículas</p>
+            <h1>Matrículas</h1>
+        </div>
+        <a href="{{ url_for('matriculas.novo') }}" class="botao botao-primario">
+            {{ icone("plus-circle") }} Nova matrícula
+        </a>
+    </div>
+
+    {{ barra_pesquisa(
+        url_for("matriculas.listar"),
+        q,
+        "Pesquisar por aluno, turma ou curso...",
+        "pesquisa-matricula",
+        "corpo-matriculas",
+        "contagem-matriculas"
+    ) }}
+
+    {% if q %}
+        {{ contagem_pesquisa(
+            "contagem-matriculas",
+            (matriculas|length|string + " resultado(s) para \"" + q + "\"") if matriculas else ("Nenhum resultado para \"" + q + "\"")
+        ) }}
+    {% else %}
+        {{ contagem_pesquisa("contagem-matriculas") }}
+    {% endif %}
+
+    {% if matriculas %}
+
+        <div class="tabela-envolve">
+
+            <table class="tabela">
+
+                <thead>
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Turma</th>
+                        <th>Curso</th>
+                        <th>Situação</th>
+                        <th class="col-acoes">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody id="corpo-matriculas">
+                    {% for matricula in matriculas %}
+                        <tr data-filtro="{{ matricula.aluno.nome if matricula.aluno else '' }} {{ matricula.turma.nome if matricula.turma else '' }} {{ matricula.turma.curso.nome if matricula.turma and matricula.turma.curso else '' }}">
+                            <td>
+                                {{ matricula.aluno.nome if matricula.aluno else "Aluno removido" }}
+                            </td>
+                            <td>
+                                {{ matricula.turma.nome if matricula.turma else "Turma removida" }}
+                            </td>
+                            <td>
+                                {{ matricula.turma.curso.nome if matricula.turma and matricula.turma.curso else "—" }}
+                            </td>
+                            <td>
+                                {% if matricula.ativa %}
+                                    <span class="badge badge-sucesso">Ativa</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">Inativa</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-acoes">
+                                <div class="acoes">
+                                    <a
+                                        href="{{ url_for('matriculas.editar', matricula_id=matricula.id) }}"
+                                        class="botao botao-secundario"
+                                    >
+                                        {{ icone("edit") }}Editar
+                                    </a>
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('matriculas.excluir', matricula_id=matricula.id) }}"
+                                        data-confirma="Remover esta matrícula?"
+                                        class="form-inline"
+                                    >
+                                        <button
+                                            type="submit"
+                                            class="botao botao-perigo"
+                                        >
+                                            {{ icone("trash-2") }}Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    <tr class="linha-sem-resultado" hidden>
+                        <td colspan="5" class="centro obs-menos">
+                            Nenhuma matrícula corresponde à pesquisa digitada.
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="estado-vazio">
+            {% if q %}
+                <p>Nenhuma matrícula encontrada para "{{ q }}".</p>
+                <a href="{{ url_for('matriculas.listar') }}" class="botao botao-secundario">
+                    Limpar pesquisa
+                </a>
+            {% else %}
+                <p>Nenhuma matrícula registrada ainda.</p>
+                <a href="{{ url_for('matriculas.novo') }}" class="botao botao-primario">
+                    {{ icone("plus-circle") }}Cadastrar primeira matrícula
+                </a>
+            {% endif %}
+        </div>
+
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,42 @@
+{# Componente reutilizavel de pesquisa em listagens.
+   Uso:
+     {% from "_pesquisa.html" import barra_pesquisa, contagem_pesquisa %}
+     {{ barra_pesquisa(url_for("alunos.listar"), q,
+                       "Pesquisar aluno por nome...",
+                       "pesquisa-aluno", "corpo-alunos", "contagem-alunos") }}
+     {{ contagem_pesquisa("contagem-alunos", texto) }}
+   O filtro instantaneo (JS) mora no app.js e usa:
+   - data-filtro-tabela="<id do tbody>"
+   - data-filtro-contagem="<id do <p> de contagem>" (opcional)
+   Cada <tr> pode ter data-filtro="texto pesquisavel"; sem ele, usa o texto da linha.
+   Linha opcional <tr class="linha-sem-resultado" hidden> aparece quando nada bate. #}
+{% from "_icones.html" import icone %}
+
+{% macro barra_pesquisa(action, valor="", placeholder="Pesquisar...", id_campo="pesquisa", id_corpo="", id_contagem="") -%}
+<form
+    method="get"
+    action="{{ action }}"
+    class="barra-pesquisa"
+    role="search"
+>
+    <input
+        type="search"
+        name="q"
+        id="{{ id_campo }}"
+        value="{{ valor or '' }}"
+        placeholder="{{ placeholder }}"
+        autocomplete="off"
+        aria-label="{{ placeholder }}"
+        {% if id_corpo %}data-filtro-tabela="{{ id_corpo }}"{% endif %}
+        {% if id_contagem %}data-filtro-contagem="{{ id_contagem }}"{% endif %}
+    >
+    <button type="submit" class="botao botao-secundario">{{ icone("search") }}Buscar</button>
+    {% if valor %}
+        <a href="{{ action }}" class="botao botao-secundario">Limpar</a>
+    {% endif %}
+</form>
+{%- endmacro %}
+
+{% macro contagem_pesquisa(id_contagem, texto="") -%}
+<p class="contagem-pesquisa" id="{{ id_contagem }}" aria-live="polite">{{ texto }}</p>
+{%- endmacro %}
