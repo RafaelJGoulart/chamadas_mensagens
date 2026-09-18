@@ -7,6 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#060708">
 
+    <script>
+        (function () {
+            try {
+                var tema = localStorage.getItem("sistema_tema");
+                if (tema !== "claro") tema = "escuro";
+                document.documentElement.setAttribute("data-tema", tema);
+            } catch (e) {
+                document.documentElement.setAttribute("data-tema", "escuro");
+            }
+        })();
+    </script>
+
     <title>{% block titulo %}Sistema de Chamadas{% endblock %}</title>
 
     <link
@@ -91,7 +103,24 @@
     </main>
 
     <footer class="rodape">
-        <p>Sistema de Chamadas · uso local</p>
+        <div class="rodape-conteudo">
+            <p>Sistema de Chamadas · uso local</p>
+
+            <button
+                type="button"
+                id="alternar-tema"
+                class="alternar-tema"
+                aria-pressed="false"
+                aria-label="Alternar para o tema claro"
+                title="Alternar tema claro e escuro"
+            >
+                <span class="alternar-tema-pista" aria-hidden="true">
+                    <span class="tema-icone tema-icone-lua">{{ icone("moon", "icone icone-pequeno") }}</span>
+                    <span class="tema-icone tema-icone-sol">{{ icone("sun", "icone icone-pequeno") }}</span>
+                    <span class="alternar-tema-botao"></span>
+                </span>
+            </button>
+        </div>
     </footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

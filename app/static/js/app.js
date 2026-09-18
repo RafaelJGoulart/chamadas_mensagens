@@ -189,4 +189,39 @@
         if (ev.key === "Escape") fecharMenu();
     });
 
+    /* ---- Alternar tema claro/escuro ---- */
+    function aplicarTema(tema) {
+        document.documentElement.setAttribute("data-tema", tema);
+        try {
+            localStorage.setItem("sistema_tema", tema);
+        } catch (e) { /* sem armazenamento, segue no padrao */ }
+
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute("content", tema === "claro" ? "#f2f4f8" : "#060708");
+        }
+
+        var botao = document.getElementById("alternar-tema");
+        if (botao) {
+            var claro = tema === "claro";
+            botao.setAttribute("aria-pressed", claro ? "true" : "false");
+            botao.setAttribute(
+                "aria-label",
+                claro ? "Alternar para o tema escuro" : "Alternar para o tema claro"
+            );
+        }
+    }
+
+    var temaAtual = document.documentElement.getAttribute("data-tema");
+    if (temaAtual !== "claro" && temaAtual !== "escuro") temaAtual = "escuro";
+    aplicarTema(temaAtual);
+
+    var botaoTema = document.getElementById("alternar-tema");
+    if (botaoTema) {
+        botaoTema.addEventListener("click", function () {
+            var claro = document.documentElement.getAttribute("data-tema") === "claro";
+            aplicarTema(claro ? "escuro" : "claro");
+        });
+    }
+
 })();

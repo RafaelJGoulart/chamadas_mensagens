@@ -18,7 +18,7 @@ Importação usa `openpyxl` (instalado à parte — **fora** do `requirements.tx
 
 ---
 
-## 2. Status: EM EVOLUÇÃO (base concluída + matriz + contato + 3 fones + importação + seed)
+## 2. Status: EM EVOLUÇÃO (base concluída + matriz + contato + 3 fones + importação + seed + tema claro)
 
 Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 1. `iniciar.bat` refeito (1º plano, navegador com delay, `pause` no fim)
@@ -62,6 +62,22 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     agora aceita `data-confirma-titulo` (usado na importação). Dashboard: painéis
     de gráfico com altura adaptada ao conteúdo (`align-items: start`).
 
+18. **Tema claro (`data-tema="claro"` no `<html>`)**: tokens novos em `style.css`
+    (`:root[data-tema="claro"]`) — fundo quase branco `#f2f4f8`, superfícies
+    brancas, textos escuros e versões **mais escuras** das semânticas
+    (verde `#15803d`, azul `#2563eb`, amarelo `#b45309`, vermelho `#dc2626`,
+    violeta `#7c3aed`, primária `#0b9e6e`) para contraste confortável. Também
+    sobrescritas no claro as cores fixas que só valiam no escuro (topo
+    translúcido, thead da tabela, anel de badges, brilhos/sombras, barras de
+    gráfico, modal). `color-scheme: dark/light` conforme o tema. **Switch
+    minimalista no rodapé** (`#alternar-tema`): pista com ícones **lua/sol**
+    e bolinha deslizante; estado ativo fica destacado. `sun.svg` + `moon.svg`
+    copiados de `feather/` p/ `static/icons` e adicionados ao sprite inline
+    (agora **25 SVGs** + favicon). JS em `app.js` persiste em `localStorage`
+    (`sistema_tema`), sincroniza `aria-pressed`/`aria-label` e o
+    `meta theme-color`; script inline no `<head>` do `base.html` aplica o tema
+    antes da pintura (sem flash). Padrão permanece **escuro**.
+
 > Tarefas adiadas de propósito (não implementar sem autorização): regras de
 > aprovação/reprovação/limite de faltas.
 
@@ -84,13 +100,13 @@ SistemaChamadas/
 │   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo
 │   └── static/
 │       ├── css/style.css, js/app.js
-│       ├── icons/ (23 SVGs + favicon)
+│       ├── icons/ (25 SVGs + favicon)
 │       └── fonts/ → Lato-Regular/Bold/Black.ttf (usadas no relatório PDF)
 ├── data/                    → sistema.db (migra sozinho: celular/comercial + backfill)
 ├── backups/                 → .db (backup.bat + pré-importação 2026-09-16; pre_migracao_telefones.db pode apagar após conferir)
 ├── logs/                    → reservado para logs
 ├── seed/                    → .sql locais (exportar/restaurar; fora do Git)
-├── feather/                 → coleção original Feather (287 SVGs; fonte dos 21 em static/icons)
+├── feather/                 → coleção original Feather (287 SVGs; fonte dos ícones usados em static/icons)
 ├── Export_F10*.xlsx         → exports do Microcamp (fonte da importação; fora do Git)
 ├── importar_excel.py        → LIMPA o banco e importa os exports do Microcamp (ver seção 4)
 ├── seed_banco.py            → exportar (.sql) / restaurar / resumo do banco
@@ -233,13 +249,14 @@ Matrículas (aluno+turma+curso). Servidor filtra igual via `?q=`.
 
 ## 10. Interface / design system
 
-- Escuro `#111418`, esmeralda `#10b981` (gradiente + brilho no primário).
+- Escuro `#111418` e claro quase branco `#f2f4f8` (via `data-tema` no `<html>`),
+  esmeralda `#10b981` (escuro) / `#0b9e6e` (claro), gradiente + brilho no primário.
 - **Contraste WCAG medido por script (`contraste.py` no temp): 14/14 OK.**
-- Tokens: superficies, `--borda #333e4d`, `--entrada #0c1016` (inputs),
-  semânticas claras, raios 14 (cards) / 9 (botões-inputs).
+- Tokens: superficies, `--borda`, `--entrada` (inputs), semânticas claras no
+  escuro e versões mais escuras no claro, raios 14 (cards) / 9 (botões-inputs).
 - Números tabulares globais (`tabular-nums` — cara de pauta); foco visível
   esmeralda; `::selection` esmeralda; scrollbars finas nas tabelas.
-- Ícones: 21 Feather em `static/icons` + `_sprite.html` inline + macro
+- Ícones: 25 Feather em `static/icons` + `_sprite.html` inline + macro
   `{{ icone("nome") }}` (currentColor, tamanhos 14/16/18/22); logo e favicon =
   `check-square` esmeralda. (Sprite externo foi removido — `<use>` externo não
   renderizava; inline é confiável.)

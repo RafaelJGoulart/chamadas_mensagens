@@ -3,6 +3,8 @@
    ============================================================ */
 
 :root {
+    color-scheme: dark;
+
     --fundo: #060708;
     --superficie: #0d1013;
     --superficie-2: #151b22;
@@ -27,6 +29,81 @@
     --raio: 14px;
     --raio-pequeno: 9px;
     --sombra: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================================
+   Tema claro
+   ============================================================ */
+
+:root[data-tema="claro"] {
+    color-scheme: light;
+
+    --fundo: #f2f4f8;
+    --superficie: #ffffff;
+    --superficie-2: #e9edf3;
+    --borda: #d4dbe4;
+    --entrada: #fbfcfe;
+
+    --texto: #1c2733;
+    --texto-suave: #46586e;
+    --texto-fraco: #66788e;
+
+    --primaria: #0b9e6e;
+    --primaria-escura: #0c8261;
+    --primaria-fundo: rgba(16, 185, 129, 0.14);
+
+    --sucesso: #15803d;
+    --info: #2563eb;
+    --aviso: #b45309;
+    --erro: #dc2626;
+    --reposicao: #7c3aed;
+    --neutro: #64748b;
+
+    --sombra: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+:root[data-tema="claro"] .topo {
+    background: rgba(247, 249, 251, 0.88);
+}
+
+:root[data-tema="claro"] .tabela th {
+    background: rgba(16, 24, 40, 0.04);
+}
+
+:root[data-tema="claro"] .badge {
+    box-shadow: inset 0 0 0 1px rgba(16, 24, 40, 0.12);
+}
+
+:root[data-tema="claro"] .botao-primario {
+    box-shadow: 0 1px 4px rgba(6, 78, 59, 0.22);
+}
+
+:root[data-tema="claro"] .botao-primario:hover {
+    box-shadow: 0 3px 10px rgba(6, 78, 59, 0.28);
+}
+
+:root[data-tema="claro"] .marca-icone {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+:root[data-tema="claro"] .preenchimento-aviso {
+    background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+:root[data-tema="claro"] .preenchimento-turma {
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+:root[data-tema="claro"] .menu-contexto {
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.2);
+}
+
+:root[data-tema="claro"] .modal {
+    box-shadow: 0 12px 32px rgba(16, 24, 40, 0.25);
+}
+
+:root[data-tema="claro"] .modal-fundo {
+    background: rgba(15, 23, 42, 0.45);
 }
 
 * {
@@ -1222,14 +1299,96 @@ body.modo-lancar #corpo-matriz .check-presenca:not(.check-nova) {
 .rodape {
     margin-top: auto;
     border-top: 1px solid var(--borda);
-    padding: 18px 20px;
-    text-align: center;
     color: var(--texto-fraco);
     font-size: 12px;
 }
 
-.rodape p {
+.rodape-conteudo {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.rodape-conteudo p {
     margin: 0;
+}
+
+/* ---------- Alternar tema (switch sol/lua) ---------- */
+
+.alternar-tema {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.alternar-tema:hover {
+    background: var(--superficie-2);
+}
+
+.alternar-tema-pista {
+    position: relative;
+    width: 54px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    transition: background 0.25s, border-color 0.25s;
+}
+
+.tema-icone-lua,
+.tema-icone-sol {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    z-index: 1;
+}
+
+.tema-icone-lua {
+    left: 8px;
+    color: var(--info);
+}
+
+.tema-icone-sol {
+    right: 8px;
+    color: var(--texto-fraco);
+}
+
+:root[data-tema="claro"] .tema-icone-lua {
+    color: var(--texto-fraco);
+}
+
+:root[data-tema="claro"] .tema-icone-sol {
+    color: var(--aviso);
+}
+
+.alternar-tema-botao {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--texto);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: transform 0.25s ease, background 0.25s;
+}
+
+:root[data-tema="claro"] .alternar-tema-botao {
+    transform: translateX(22px);
 }
 
 /* ---------- Estado vazio ---------- */
