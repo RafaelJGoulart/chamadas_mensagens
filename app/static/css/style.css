@@ -1453,6 +1453,66 @@ body.modo-lancar #corpo-matriz .check-presenca:not(.check-nova) {
     justify-content: flex-end;
 }
 
+/* ---------- Matérias ---------- */
+
+.faixas-materias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.ficha-materia {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    color: var(--texto-suave);
+    font-size: 13px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ficha-materia:hover {
+    border-color: var(--primaria);
+    color: var(--primaria);
+}
+
+.ficha-materia-ativa {
+    border-color: var(--primaria);
+    color: var(--texto);
+    background: var(--primaria-fundo);
+    font-weight: 600;
+}
+
+.sel-mover-materia {
+    height: 26px;
+    font-size: 11px;
+    padding: 0 4px;
+    border-radius: var(--raio-pequeno);
+    border: 1px solid var(--borda);
+    background: var(--entrada);
+    color: var(--texto-suave);
+    width: 100%;
+    max-width: 130px;
+    cursor: pointer;
+}
+
+.coluna-acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    min-width: 96px;
+}
+
+.coluna-acoes .form-inline {
+    display: block;
+}
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 640px) {

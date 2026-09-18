@@ -18,6 +18,13 @@ def percentual_frequencia(presencas):
     return round((validas / total) * 100, 1)
 
 
+def percentual_frequencia_totais(total, presentes):
+    """Percentual de frequência conhecendo só as contagens (sem listas)."""
+    if not total:
+        return None
+    return round((presentes / total) * 100, 1)
+
+
 def aluno_frequente(percentual):
     """Aluno é frequente quando atinge 50% ou mais."""
     return percentual is not None and percentual >= 50.0

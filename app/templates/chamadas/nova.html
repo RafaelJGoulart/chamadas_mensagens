@@ -20,6 +20,24 @@
 
     <form method="post" class="formulario">
 
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% if materias %}
+            <div class="campo">
+                <label for="materia_id">Matéria</label>
+                <select id="materia_id" name="materia_id" required>
+                    {% for materia in materias %}
+                        <option
+                            value="{{ materia.id }}"
+                            {{ "selected" if (dados and dados.materia_id == materia.id) or (not dados and material_atual and material_atual.id == materia.id) }}
+                        >
+                            {{ materia.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
         <div class="campo">
             <label for="data">Data da aula</label>
             <input

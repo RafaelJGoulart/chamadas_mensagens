@@ -1,17 +1,12 @@
-"""Dados do relatório mensal de frequência (todas as turmas do professor)."""
+"""Dados do relatório mensal de frequência (todas as turmas do professor).
+
+Usa a mesma agregação em SQL do serviço de estatísticas (sem duplicação).
+"""
 from collections import defaultdict
-from datetime import date
 
-from extensions import db
-from models import Aluno, Chamada, Presenca, Turma
-from services.estatisticas import MESES
-from services.frequencia import aluno_frequente, percentual_frequencia
-
-
-def _intervalo_mes(ano, mes):
-    inicio = date(ano, mes, 1)
-    fim = date(ano + 1, 1, 1) if mes == 12 else date(ano, mes + 1, 1)
-    return inicio, fim
+from models import Aluno, Turma
+from services.estatisticas import MESES, resumo_mensal_por_turma_aluno
+from services.frequencia import aluno_frequente, percentual_frequencia_totais
 
 
 def dados_relatorio(ano, mes):
@@ -24,16 +19,7 @@ def dados_relatorio(ano, mes):
     """
     mes_nome = MESES[mes - 1] if 1 <= mes <= 12 else str(mes)
 
-    inicio, fim = _intervalo_mes(ano, mes)
-    chamadas = Chamada.query.filter(
-        Chamada.data >= inicio,
-        Chamada.data < fim,
-    ).all()
-    presencas = []
-    if chamadas:
-        presencas = Presenca.query.filter(
-            Presenca.chamada_id.in_([c.id for c in chamadas])
-        ).all()
+    resumo = resumo_mensal_por_turma_aluno(ano, mes)
 
     alunos_ativos = (
         Aluno.query.filter_by(status="ativo").order_by(Aluno.nome).all()
@@ -41,13 +27,12 @@ def dados_relatorio(ano, mes):
     por_id = {aluno.id: aluno for aluno in alunos_ativos}
     total_alunos = len(alunos_ativos)
 
-    por_aluno = defaultdict(list)
-    por_turma_aluno = defaultdict(lambda: defaultdict(list))
-    for p in presencas:
-        if p.aluno_id not in por_id:
-            continue
-        por_aluno[p.aluno_id].append(p)
-        por_turma_aluno[p.chamada.turma_id][p.aluno_id].append(p)
+    por_aluno = defaultdict(lambda: {"total": 0, "presentes": 0})
+    for mapa in resumo.values():
+        for aluno_id, dados in mapa.items():
+            ag = por_aluno[aluno_id]
+            ag["total"] += dados["total"]
+            ag["presentes"] += dados["presentes"]
 
     casos_coordenacao = sum(
         1 for aluno in alunos_ativos if aluno.flag_coordenacao
@@ -55,8 +40,12 @@ def dados_relatorio(ano, mes):
 
     alunos_frequentes = 0
     alunos_ausentes = 0
-    for aluno_id, lista in por_aluno.items():
-        if aluno_frequente(percentual_frequencia(lista)):
+    for aluno_id, dados in por_aluno.items():
+        if aluno_id not in por_id:
+            continue
+        if aluno_frequente(
+            percentual_frequencia_totais(dados["total"], dados["presentes"])
+        ):
             alunos_frequentes += 1
         else:
             alunos_ausentes += 1
@@ -76,9 +65,7 @@ def dados_relatorio(ano, mes):
     turmas = Turma.query.filter_by(ativa=True).order_by(Turma.nome).all()
     por_turma = []
     for turma in turmas:
-        matriculados = (
-            turma.matriculas.filter_by(ativa=True).all()
-        )
+        matriculados = turma.matriculas.filter_by(ativa=True).all()
         aluno_ids = [
             m.aluno_id for m in matriculados if m.aluno_id in por_id
         ]
@@ -86,14 +73,17 @@ def dados_relatorio(ano, mes):
         qtd_coord = sum(1 for a in aluno_ids if por_id[a].flag_coordenacao)
         qtd_meta = qtd_alunos - qtd_coord
 
+        mapa = resumo.get(turma.id, {})
         qtd_freq = 0
         qtd_aus = 0
         qtd_sem = 0
         for aluno_id in aluno_ids:
-            lista = por_turma_aluno.get(turma.id, {}).get(aluno_id, [])
-            if not lista:
+            dados = mapa.get(aluno_id)
+            if not dados:
                 qtd_sem += 1
-            elif aluno_frequente(percentual_frequencia(lista)):
+            elif aluno_frequente(
+                percentual_frequencia_totais(dados["total"], dados["presentes"])
+            ):
                 qtd_freq += 1
             else:
                 qtd_aus += 1

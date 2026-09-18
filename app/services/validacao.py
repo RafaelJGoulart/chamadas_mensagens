@@ -99,3 +99,11 @@ def validar_matricula(form):
         erros.append("Selecione uma turma.")
 
     return aluno_id, turma_id, erros
+
+
+def validar_materia(form):
+    nome = normalizar_texto(form.get("nome", ""))
+    erros = []
+    if not nome:
+        erros.append("Informe o nome da matéria.")
+    return nome, erros

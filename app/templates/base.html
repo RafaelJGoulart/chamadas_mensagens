@@ -123,6 +123,9 @@
         </div>
     </footer>
 
+    <script>
+        window.CSRF_TOKEN = "{{ csrf_token() }}";
+    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
 

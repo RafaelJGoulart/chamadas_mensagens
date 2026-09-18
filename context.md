@@ -13,7 +13,7 @@ Roda em `http://127.0.0.1:5000`.
 
 Tecnologias: Python 3.12, Flask 3.1.3, Flask-SQLAlchemy 3.1.1, SQLAlchemy 2.0.52,
 SQLite, Jinja2, HTML/CSS/JS puros + ícones Feather (coleção original em
-`feather/`; 21 copiados p/ `static/icons`, sprite embutido inline, sem CDNs).
+`feather/`; 26 copiados p/ `static/icons`, sprite embutido inline, sem CDNs).
 Importação usa `openpyxl` (instalado à parte — **fora** do `requirements.txt`).
 
 ---
@@ -73,10 +73,53 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     minimalista no rodapé** (`#alternar-tema`): pista com ícones **lua/sol**
     e bolinha deslizante; estado ativo fica destacado. `sun.svg` + `moon.svg`
     copiados de `feather/` p/ `static/icons` e adicionados ao sprite inline
-    (agora **25 SVGs** + favicon). JS em `app.js` persiste em `localStorage`
+    (agora **26 SVGs** + favicon). JS em `app.js` persiste em `localStorage`
     (`sistema_tema`), sincroniza `aria-pressed`/`aria-label` e o
     `meta theme-color`; script inline no `<head>` do `base.html` aplica o tema
     antes da pintura (sem flash). Padrão permanece **escuro**.
+
+19. **Módulo "Matérias" dentro de cada curso** (ícone `layers`):
+    - Modelo `Materia` (curso → matérias, `UniqueConstraint(curso_id, nome)`),
+      `Chamada.materia_id` (nullable FK) + `ix_chamadas_data` no banco.
+    - **Migração automática** (`_migrar_materias`, idempotente): cria a coluna
+      `materia_id`, o índice por data e a matéria **"Neutra"** por curso,
+      associa as chamadas antigas sem matéria a ela (todo curso ganha a "Neutra"
+      para o sistema funcionar mesmo sem matérias cadastradas). O **seed das 12
+      matérias padrão é feito SÓ no curso "Informatica"** (ordem canônica em
+      `services/materias.py`) — cursos criados pelo usuário nascem apenas com a
+      "Neutra" e as matérias de cada um são administradas pelo professor.
+    - **Ordem de exibição**: as matérias aparecem sempre na ordem canônica
+      (Windows, Illustrator, Photoshop, Word, Lógica de Programação, Scratch,
+      HTML, Powerpoint, Express, XD, Dreamweaver, Excel), matérias extras em
+      ordem alfabética e a **"Neutra" por último** (`ordenar_materias` —
+      centralizado em `services/materias.py`, usado nas pills da matriz, nos
+      selects de mover/novo e na tela de matérias).
+    - Rotas `/cursos/<id>/materias` (lista/nova) e `/materias/<id>/editar|excluir`
+      (excluir bloqueia se houver chamadas). CRUD segue o padrão das outras telas.
+      O acesso fica em **Cursos** (botão "Matérias" por linha) e na tela de
+      **Editar curso** (botão "Matérias" no cabeçalho).
+    - **Matriz por matéria**: `/chamadas/turma/<id>?materia=<id>` mostra as
+      colunas de **uma** matéria; o padrão é a matéria da última chamada (ou
+      "Neutra"). Seletor de matérias em pills no topo da tela.
+    - **Mover chamada entre matérias**: select "Mover…" no topo de cada coluna
+      faz `POST /chamadas/<id>/materia/<mid>` (mesmo curso exigido; bloqueia
+      duplicata turma/data/matéria) e recarrega a janela.
+    - Lançamento (painel inline e tela `/nova`) agora pede a **matéria**;
+      chamada lançada redireciona para a janela da própria matéria.
+    - **Correções de desempenho aplicadas**: estatísticas mensais/relatório/
+      baixa frequência usam **agregação SQL única** (`resumo_mensal_por_turma_aluno`,
+      GROUP BY turma/aluno) — fim do N+1 por presença; a matriz carrega chamadas
+      com `selectinload(presencas)` + mapa aluno→presença (≈4 consultas, antes
+      eram 12+); regra de leitura sem efeito colateral (o backfill de ausentes
+      saiu do GET e virou migração `_garantir_backfill_presencas` no startup).
+    - **Proteção CSRF + chave secreta**: SECRET_KEY persistida em `data/secret_key`
+      (ou env `SISTEMA_SECRET_KEY`); todo POST exige `csrf_token` (form) ou
+      `X-CSRF-Token` (fetch) — 400 caso contrário. Todos os templates enviam o
+      token (`{{ csrf_token() }}`) e o `base.html` injeta `window.CSRF_TOKEN`.
+    - **Atenção (constraint)**: bancos que já existiam mantêm a unicidade física
+      antiga `(turma_id, data)` — no banco atual não é possível criar duas
+      chamadas na mesma data em matérias diferentes para a mesma turma (a nova
+      única `(turma_id, data, materia_id)` só vale em bancos criados do zero).
 
 > Tarefas adiadas de propósito (não implementar sem autorização): regras de
 > aprovação/reprovação/limite de faltas.
@@ -88,21 +131,23 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 ```
 SistemaChamadas/
 ├── app/
-│   ├── app.py               → create_app(), 9 blueprints, db.create_all(), _garantir_colunas_telefone()
+│   ├── app.py               → create_app(), 10 blueprints, db.create_all(), migrações no startup
+│   │                          (_garantir_colunas_telefone, _migrar_materias, _garantir_backfill_presencas),
+│   │                          CSRF em todo POST + SECRET_KEY em data/secret_key
 │   ├── config.py            → caminhos relativos (Path), cria data/, backups/, logs/
 │   ├── extensions.py        → db = SQLAlchemy()
-│   ├── models/              → Curso, Turma, Aluno (3 fones), Matricula, Chamada, Presenca, Contato
+│   ├── models/              → Curso, Turma, Aluno (3 fones), Matricula, Chamada, Presenca, Contato, Materia
 │   ├── routes/              → cursos, turmas, alunos, matriculas, chamadas, dashboard, contato,
-│   │                          relatorio, importacao
+│   │                          relatorio, importacao, materias
 │   ├── services/            → frequencia, estatisticas (+WhatsApp), validacao (+normalizar_busca),
 │   │                          relatorio (dados) + pdf_relatorio (geração PDF),
-│   │                          importacao_excel (upload do Microcamp)
-│   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo
+│   │                          materias (ordem canônica), importacao_excel (upload do Microcamp)
+│   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo (incl. materias/)
 │   └── static/
 │       ├── css/style.css, js/app.js
-│       ├── icons/ (25 SVGs + favicon)
+│       ├── icons/ (26 SVGs + favicon)
 │       └── fonts/ → Lato-Regular/Bold/Black.ttf (usadas no relatório PDF)
-├── data/                    → sistema.db (migra sozinho: celular/comercial + backfill)
+├── data/                    → sistema.db (migra sozinho: celular/comercial + matérias + backfill)
 ├── backups/                 → .db (backup.bat + pré-importação 2026-09-16; pre_migracao_telefones.db pode apagar após conferir)
 ├── logs/                    → reservado para logs
 ├── seed/                    → .sql locais (exportar/restaurar; fora do Git)
@@ -139,18 +184,21 @@ em bancos existentes — inofensiva; bancos novos nascem sem ela).
 Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 `celular = telefone_responsavel` (só onde vazio).
 
-### Demais modelos (inalterados)
-- **Curso**: nome único; cascade p/ turmas.
+### Demais modelos
+- **Curso**: nome único; cascade p/ turmas; `materias` (relação).
 - **Turma**: dia_semana (check), horários Time, ativa.
 - **Matricula**: aluno+turma, datas, ativa.
-- **Chamada**: UniqueConstraint(turma_id, data).
+- **Materia**: curso→matérias; `UniqueConstraint(curso_id, nome)`; `chamadas`
+  (relação; **sem cascade** — matéria com chamadas não pode ser apagada).
+- **Chamada**: `materia_id` (nullable FK) + `Index(ix_chamadas_data)`; em bancos
+  criados do zero vale `UniqueConstraint(turma_id, data, materia_id)`.
 - **Presenca**: UniqueConstraint(chamada_id, aluno_id), estado IN
   ausente/frequente/reposicao. Cascade delete-orphan via Chamada.
 - **Contato**: existe, **sem UI** (decisão da spec).
 
 ---
 
-## 5. Rotas (9 blueprints)
+## 5. Rotas (10 blueprints)
 
 | Módulo | Endpoints principais |
 |---|---|
@@ -158,11 +206,12 @@ Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 | Turmas | `/turmas`, ... (Ações tem botão **Chamadas** primário) |
 | Alunos | `/alunos` (aceita `?q=` aproximado), `/novo` (pode matricular na turma com ausências retroativas), `/editar`, `/excluir` |
 | Matrículas | `/matriculas` (aceita `?q=` em aluno/turma/curso), `/novo`, ... |
-| Chamadas | `/chamadas` → redirect `/turmas`; `/chamadas/turma/<id>` (**matriz**); `/nova` (GET fallback + POST cria com presenças, erro volta p/ matriz); `/<id>/presenca/<aluno>` (POST JSON, usado pela matriz); `/<id>/excluir` → matriz |
+| Chamadas | `/chamadas` → redirect `/turmas`; `/chamadas/turma/<id>` (**matriz**, aceita `?materia=`); `/nova` (pede matéria; erro volta p/ matriz); `/<id>/presenca/<aluno>` (POST JSON, usado pela matriz); `/<id>/materia/<mid>` (POST mover entre matérias); `/<id>/excluir` → matriz |
 | Dashboard | `/` (`?mes=&ano=`, valida e volta ao atual se inválido) |
 | Contato | `/contato` (`?mes=&ano=`; <50% no mês, sem flag) |
 | Relatório | `/relatorio` (`?mes=&ano=`) → baixa PDF (reportlab, fontes Lato) com resumo geral, meta de presença e por turma |
 | Importação | `/importacao` (GET form + POST upload dos 2 exports do Microcamp; substitui dados, com backup prévio) |
+| Matérias | `/cursos/<id>/materias` (lista), `/cursos/<id>/materias/nova`, `/materias/<id>/editar`, `/materias/<id>/excluir` (bloqueia com chamadas) |
 
 **REMOVIDO**: `/chamadas/<id>` (detalhe por chamada) + template + JS/CSS órfãos
 (`seletor-estado`, `botao-menu`, `badge-presenca`, `chamada-tabela`, `resumo-badges`).
@@ -172,13 +221,18 @@ Grep de verificação: zero refs a `detalhe|seletor-estado|botao-menu`.
 
 ## 6. Serviços
 
-### `frequencia.py` (inalterado)
+### `frequencia.py`
 `presencas_validas`, `percentual_frequencia` (round 1, None se 0),
-`aluno_frequente` (>= 50.0), `contar_estados`.
+`percentual_frequencia_totais(total, presentes)`, `aluno_frequente` (>= 50.0),
+`contar_estados`.
 
 ### `estatisticas.py`
-- `estatisticas_mensais`, `indicadores_gerais`, `chamadas_recentes`,
-  `presencas_do_mes`, `alunos_com_flag_coordenacao`, `MESES`.
+- `resumo_mensal_por_turma_aluno(ano, mes)` → **agregação SQL única**
+  (GROUP BY turma/aluno): `{turma_id: {aluno_id: {total, presentes}}}` — base de
+  dashboard, contato e relatório (fim do N+1 por presença).
+- `estatisticas_mensais`, `indicadores_gerais`, `chamadas_recentes`
+  (com `selectinload(presencas)`), `presencas_do_mes`, `alunos_com_flag_coordenacao`,
+  `MESES`.
 - WhatsApp: `_somente_digitos`, `telefone_para_whatsapp(tel, cel, com)` →
   `(numero, exibido, rotulo)` na ordem telefone→celular→comercial (+55);
   `numeros_whatsapp(...)` → 1 link wa.me por número válido;
@@ -256,7 +310,7 @@ Matrículas (aluno+turma+curso). Servidor filtra igual via `?q=`.
   escuro e versões mais escuras no claro, raios 14 (cards) / 9 (botões-inputs).
 - Números tabulares globais (`tabular-nums` — cara de pauta); foco visível
   esmeralda; `::selection` esmeralda; scrollbars finas nas tabelas.
-- Ícones: 25 Feather em `static/icons` + `_sprite.html` inline + macro
+- Ícones: 26 Feather em `static/icons` + `_sprite.html` inline + macro
   `{{ icone("nome") }}` (currentColor, tamanhos 14/16/18/22); logo e favicon =
   `check-square` esmeralda. (Sprite externo foi removido — `<use>` externo não
   renderizava; inline é confiável.)

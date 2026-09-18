@@ -7,8 +7,10 @@ class Chamada(db.Model):
         db.UniqueConstraint(
             "turma_id",
             "data",
-            name="uq_chamada_turma_data",
+            "materia_id",
+            name="uq_chamada_turma_data_materia",
         ),
+        db.Index("ix_chamadas_data", "data"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -17,6 +19,11 @@ class Chamada(db.Model):
         db.ForeignKey("turmas.id"),
         nullable=False,
     )
+    materia_id = db.Column(
+        db.Integer,
+        db.ForeignKey("materias.id"),
+        nullable=True,
+    )
     data = db.Column(db.Date, nullable=False)
     conteudo = db.Column(db.Text)
     observacao = db.Column(db.Text)
@@ -24,7 +31,7 @@ class Chamada(db.Model):
     presencas = db.relationship(
         "Presenca",
         backref="chamada",
-        lazy="dynamic",
+        lazy="select",
         cascade="all, delete-orphan",
     )
 

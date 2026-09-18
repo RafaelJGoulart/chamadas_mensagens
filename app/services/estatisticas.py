@@ -2,14 +2,18 @@ from collections import defaultdict
 from datetime import date
 from urllib.parse import quote
 
+from sqlalchemy import case, func
+
 from extensions import db
 from models import (
     Aluno,
     Chamada,
+    FREQUENTE,
     Presenca,
+    REPOSICAO,
     Turma,
 )
-from services.frequencia import aluno_frequente, percentual_frequencia
+from services.frequencia import aluno_frequente, percentual_frequencia_totais
 
 
 MESES = [
@@ -43,11 +47,67 @@ def chamadas_do_mes(ano, mes):
 
 
 def presencas_do_mes(ano, mes):
-    chamadas = chamadas_do_mes(ano, mes)
-    ids = [c.id for c in chamadas]
-    if not ids:
-        return []
-    return Presenca.query.filter(Presenca.chamada_id.in_(ids)).all()
+    """Presenças do mês já com chamada e turma carregadas (sem N+1)."""
+    inicio, fim = _intervalo_mes(ano, mes)
+    return (
+        Presenca.query.join(Chamada, Chamada.id == Presenca.chamada_id)
+        .options(
+            db.joinedload(Presenca.chamada).joinedload(Chamada.turma)
+        )
+        .filter(Chamada.data >= inicio, Chamada.data < fim)
+        .all()
+    )
+
+
+def resumo_mensal_por_turma_aluno(ano, mes):
+    """Agrega o mês no banco: {turma_id: {aluno_id: {total, presentes}}}.
+
+    Uma única consulta com GROUP BY; nada é carregado linha a linha.
+    O resultado serve para dashboard, contato e relatório (sem duplicação).
+    """
+    inicio, fim = _intervalo_mes(ano, mes)
+    linhas = (
+        db.session.query(
+            Chamada.turma_id,
+            Presenca.aluno_id,
+            func.count(Presenca.id).label("total"),
+            func.sum(
+                case(
+                    (Presenca.estado.in_((FREQUENTE, REPOSICAO)), 1),
+                    else_=0,
+                )
+            ).label("presentes"),
+        )
+        .join(Chamada, Chamada.id == Presenca.chamada_id)
+        .filter(Chamada.data >= inicio, Chamada.data < fim)
+        .group_by(Chamada.turma_id, Presenca.aluno_id)
+        .all()
+    )
+    saida = defaultdict(dict)
+    for turma_id, aluno_id, total, presentes in linhas:
+        saida[turma_id][aluno_id] = {
+            "total": total or 0,
+            "presentes": presentes or 0,
+        }
+    return saida
+
+
+def _alunos_ativos_por_id():
+    return {
+        a.id: a
+        for a in Aluno.query.filter_by(status="ativo").order_by(Aluno.nome).all()
+    }
+
+
+def _resumo_global(por_turma_aluno):
+    """Soma todos os totais por aluno, ignorando turma."""
+    por_aluno = {}
+    for mapa in por_turma_aluno.values():
+        for aluno_id, dados in mapa.items():
+            ag = por_aluno.setdefault(aluno_id, {"total": 0, "presentes": 0})
+            ag["total"] += dados["total"]
+            ag["presentes"] += dados["presentes"]
+    return por_aluno
 
 
 def estatisticas_mensais(ano, mes):
@@ -60,30 +120,24 @@ def estatisticas_mensais(ano, mes):
     - percentual_frequentes: % sobre o total com dados
     - por_turma: lista de dicts por turma com % de frequentes
     """
-    presencas = presencas_do_mes(ano, mes)
+    por_turma_aluno = resumo_mensal_por_turma_aluno(ano, mes)
+    ativos = _alunos_ativos_por_id()
+    por_aluno = _resumo_global(por_turma_aluno)
 
-    por_aluno = defaultdict(list)
-    por_turma_aluno = defaultdict(lambda: defaultdict(list))
+    alunos_com_dados = {
+        aluno_id
+        for aluno_id in por_aluno
+        if aluno_id in ativos
+    }
 
-    for p in presencas:
-        por_aluno[p.aluno_id].append(p)
-        por_turma_aluno[p.chamada.turma_id][p.aluno_id].append(p)
-
-    alunos_com_dados = set()
-    frequentes_por_aluno = {}
-    for aluno_id, lista in por_aluno.items():
-        aluno = db.session.get(Aluno, aluno_id)
-        if aluno is None or aluno.status != "ativo":
-            continue
-        alunos_com_dados.add(aluno_id)
-        frequentes_por_aluno[aluno_id] = aluno_frequente(
-            percentual_frequencia(lista)
+    def _frequente(aluno_id):
+        dados = por_aluno[aluno_id]
+        return aluno_frequente(
+            percentual_frequencia_totais(dados["total"], dados["presentes"])
         )
 
     total_com_dados = len(alunos_com_dados)
-    alunos_frequentes = sum(
-        1 for a in frequentes_por_aluno.values() if a
-    )
+    alunos_frequentes = sum(1 for aid in alunos_com_dados if _frequente(aid))
     alunos_abaixo = total_com_dados - alunos_frequentes
     percentual_frequentes = None
     if total_com_dados:
@@ -91,19 +145,28 @@ def estatisticas_mensais(ano, mes):
             (alunos_frequentes / total_com_dados) * 100, 1
         )
 
+    turmas_ids = list(por_turma_aluno.keys())
+    turmas = {}
+    if turmas_ids:
+        turmas = {
+            t.id: t
+            for t in Turma.query.filter(Turma.id.in_(turmas_ids)).all()
+        }
+
     por_turma = []
     for turma_id, mapa in por_turma_aluno.items():
-        turma = db.session.get(Turma, turma_id)
+        turma = turmas.get(turma_id)
         if turma is None:
             continue
         presentes_turma = 0
         frequentes_turma = 0
-        for aluno_id, lista in mapa.items():
-            aluno = db.session.get(Aluno, aluno_id)
-            if aluno is None or aluno.status != "ativo":
+        for aluno_id, dados in mapa.items():
+            if aluno_id not in ativos:
                 continue
             presentes_turma += 1
-            if aluno_frequente(percentual_frequencia(lista)):
+            if aluno_frequente(
+                percentual_frequencia_totais(dados["total"], dados["presentes"])
+            ):
                 frequentes_turma += 1
         pct_frequentes = None
         if presentes_turma:
@@ -144,7 +207,8 @@ def indicadores_gerais():
 
 def chamadas_recentes(limite=5):
     return (
-        Chamada.query.order_by(Chamada.data.desc(), Chamada.id.desc())
+        Chamada.query.options(db.selectinload(Chamada.presencas))
+        .order_by(Chamada.data.desc(), Chamada.id.desc())
         .limit(limite)
         .all()
     )
@@ -233,34 +297,41 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
     aluno, percentual, total, presentes, faltas, turmas, telefone,
     telefone_rotulo, telefones, numero_wa, wa_link, mensagem.
     """
-    presencas = presencas_do_mes(ano, mes)
+    por_turma_aluno = resumo_mensal_por_turma_aluno(ano, mes)
+    por_aluno = _resumo_global(por_turma_aluno)
+
+    ativos = _alunos_ativos_por_id()
+
+    turmas_ids = list(por_turma_aluno.keys())
+    turmas = {}
+    if turmas_ids:
+        turmas = {
+            t.id: t
+            for t in Turma.query.filter(Turma.id.in_(turmas_ids)).all()
+        }
+
+    turmas_por_aluno = defaultdict(set)
+    for turma_id, mapa in por_turma_aluno.items():
+        turma = turmas.get(turma_id)
+        if turma is None:
+            continue
+        for aluno_id in mapa:
+            turmas_por_aluno[aluno_id].add(turma.nome)
+
     mes_nome = MESES[mes - 1] if 1 <= mes <= 12 else str(mes)
 
-    por_aluno = defaultdict(list)
-    turmas_por_aluno = defaultdict(set)
-    for p in presencas:
-        por_aluno[p.aluno_id].append(p)
-        try:
-            turmas_por_aluno[p.aluno_id].add(p.chamada.turma.nome)
-        except Exception:
-            pass
-
     itens = []
-    for aluno_id, lista in por_aluno.items():
-        aluno = db.session.get(Aluno, aluno_id)
-        if aluno is None:
+    for aluno_id, dados in por_aluno.items():
+        aluno = ativos.get(aluno_id)
+        if aluno is None or aluno.flag_coordenacao:
             continue
-        if aluno.status != "ativo":
-            continue
-        if aluno.flag_coordenacao:
-            continue
-        percentual = percentual_frequencia(lista)
+        percentual = percentual_frequencia_totais(
+            dados["total"], dados["presentes"]
+        )
         if percentual is None or percentual >= limite:
             continue
-        total = len(lista)
-        presentes = sum(
-            1 for p in lista if p.estado in ("frequente", "reposicao")
-        )
+        total = dados["total"]
+        presentes = dados["presentes"]
         numero_wa, exibido, rotulo = telefone_para_whatsapp(
             aluno.telefone, aluno.celular, aluno.comercial
         )

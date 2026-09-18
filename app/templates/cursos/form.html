@@ -12,12 +12,25 @@
             <p class="paginacao">Cursos</p>
             <h1>{{ "Novo curso" if not curso else "Editar curso" }}</h1>
         </div>
-        <a href="{{ url_for('cursos.listar') }}" class="botao botao-secundario">
-            {{ icone("arrow-left") }}Voltar
-        </a>
+        <div class="acoes">
+            {% if curso %}
+                <a
+                    href="{{ url_for('materias.listar', curso_id=curso.id) }}"
+                    class="botao botao-secundario"
+                    title="Adicionar, renomear ou remover as matérias deste curso"
+                >
+                    {{ icone("layers") }}Matérias
+                </a>
+            {% endif %}
+            <a href="{{ url_for('cursos.listar') }}" class="botao botao-secundario">
+                {{ icone("arrow-left") }}Voltar
+            </a>
+        </div>
     </div>
 
     <form method="post" class="formulario">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="campo">
             <label for="nome">Nome</label>
@@ -52,5 +65,13 @@
         </div>
 
     </form>
+
+    {% if not curso %}
+        <p class="dica">
+            Depois de salvar, use o botão <strong>Matérias</strong> para
+            cadastrar as matérias deste curso — cada curso tem a sua própria
+            lista, sem puxar as matérias padrão.
+        </p>
+    {% endif %}
 
 {% endblock %}

@@ -1,21 +1,29 @@
 {% extends "base.html" %}
 {% from "_icones.html" import icone %}
 
-{% block titulo %}Cursos | Sistema de Chamadas{% endblock %}
+{% block titulo %}Matérias — {{ curso.nome }} | Sistema de Chamadas{% endblock %}
 
 {% block conteudo %}
 
     <div class="pagina-cabecalho">
         <div>
-            <p class="paginacao">Cursos</p>
-            <h1>Cursos</h1>
+            <p class="paginacao">Cursos · {{ curso.nome }} · Matérias</p>
+            <h1>Matérias</h1>
         </div>
-        <a href="{{ url_for('cursos.novo') }}" class="botao botao-primario">
-            {{ icone("plus-circle") }} Novo curso
-        </a>
+        <div class="acoes">
+            <a href="{{ url_for('cursos.listar') }}" class="botao botao-secundario">
+                {{ icone("arrow-left") }}Voltar para Cursos
+            </a>
+            <a
+                href="{{ url_for('materias.novo', curso_id=curso.id) }}"
+                class="botao botao-primario"
+            >
+                {{ icone("plus-circle") }} Nova matéria
+            </a>
+        </div>
     </div>
 
-    {% if cursos %}
+    {% if materias %}
 
         <div class="tabela-envolve">
 
@@ -24,39 +32,30 @@
                 <thead>
                     <tr>
                         <th>Nome</th>
-                        <th>Descrição</th>
-                        <th>Turmas</th>
+                        <th class="centro">Chamadas</th>
                         <th class="col-acoes">Ações</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {% for curso in cursos %}
+                    {% for materia in materias %}
                         <tr>
-                            <td>{{ curso.nome }}</td>
-                            <td>{{ curso.descricao or "—" }}</td>
-                            <td>
-                                <span class="badge">{{ curso.turmas.count() }}</span>
+                            <td>{{ materia.nome }}</td>
+                            <td class="centro">
+                                <span class="badge">{{ materia.chamadas.count() }}</span>
                             </td>
                             <td class="col-acoes">
                                 <div class="acoes">
                                     <a
-                                        href="{{ url_for('materias.listar', curso_id=curso.id) }}"
-                                        class="botao botao-primario"
-                                        title="Matérias do curso"
-                                    >
-                                        {{ icone("layers") }}Matérias
-                                    </a>
-                                    <a
-                                        href="{{ url_for('cursos.editar', curso_id=curso.id) }}"
+                                        href="{{ url_for('materias.editar', materia_id=materia.id) }}"
                                         class="botao botao-secundario"
                                     >
                                         {{ icone("edit") }}Editar
                                     </a>
                                     <form
                                         method="post"
-                                        action="{{ url_for('cursos.excluir', curso_id=curso.id) }}"
-                                        data-confirma="Remover o curso '{{ curso.nome }}' e todas as turmas vinculadas?"
+                                        action="{{ url_for('materias.excluir', materia_id=materia.id) }}"
+                                        data-confirma="Remover a matéria '{{ materia.nome }}'?"
                                         class="form-inline"
                                     >
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -77,12 +76,21 @@
 
         </div>
 
+        <p class="dica">
+            Matérias com chamadas lançadas não podem ser excluídas —
+            mova as aulas para outra matéria antes (menu <strong>Mover…</strong>
+            no topo das colunas da matriz de chamadas).
+        </p>
+
     {% else %}
 
         <div class="estado-vazio">
-            <p>Nenhum curso cadastrado ainda.</p>
-            <a href="{{ url_for('cursos.novo') }}" class="botao botao-primario">
-                {{ icone("plus-circle") }}Cadastrar primeiro curso
+            <p>Nenhuma matéria cadastrada para este curso ainda.</p>
+            <a
+                href="{{ url_for('materias.novo', curso_id=curso.id) }}"
+                class="botao botao-primario"
+            >
+                {{ icone("plus-circle") }}Cadastrar primeira matéria
             </a>
         </div>
 

@@ -10,6 +10,16 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
 ## Funcionalidades
 
 - Cadastro de cursos, turmas, alunos e matrículas;
+- **Matérias por curso** (em Cursos → "Matérias" ou na tela de editar curso):
+  cada curso administra a própria lista. O curso "Informatica" já nasce com as
+  12 matérias padrão (Windows, Illustrator, Photoshop, Word, Lógica de
+  Programação, Scratch, HTML, Powerpoint, Express, XD, Dreamweaver e Excel);
+  cursos criados pelo usuário vêm só com a **"Neutra"**. As matérias aparecem
+  sempre na ordem canônica e a "Neutra" por último;
+- **Matriz de chamadas por matéria**: o seletor em pills no topo escolhe qual
+  matéria é exibida (cada coluna é uma chamada daquela matéria);
+- **Mover aula entre matérias**: menu "Mover…" no topo de cada coluna transfere
+  a chamada para outra matéria (bloqueia duplicata turma/data/matéria);
 - O cadastro do aluno já pode matriculá-lo numa turma (com ausência
   automática nas chamadas anteriores daquela turma);
 - Cada aluno tem **3 telefones**: telefone, celular e comercial (+ nome do responsável);
@@ -23,7 +33,8 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
   clique esquerdo não altera nada;
 - Últimas colunas da matriz: sinalização de coordenação e frequência total do aluno;
 - **Lançamento dentro da matriz**: botão "Nova chamada" abre painel inline
-  (data, conteúdo, observação) + coluna "Nova" binária (presente/falta, sem amarelo);
+  (data, **matéria**, conteúdo, observação) + coluna "Nova" binária
+  (presente/falta, sem amarelo); chamada lançada redireciona para a própria matéria;
 - Cálculo de frequência reutilizável:
   `frequência = (frequente + reposicao) / total de chamadas`;
 - Dashboard mensal com gráficos (geral e por turma), seleção de mês/ano e
@@ -46,7 +57,8 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
 
 - Presenças válidas: **frequente** e **reposicao**; **ausente** não conta;
 - Um aluno é **frequente no mês** com **50% ou mais** (50% exato = frequente);
-- Unicidade: uma chamada por turma/data e uma presença por chamada/aluno;
+- Unicidade: uma chamada por turma/data/matéria e uma presença por chamada/aluno
+  (bancos antigos mantêm a regra anterior turma/data — ver `CONTEXT.md`);
 - Reposição só existe depois da chamada lançada (nunca no lançamento);
 - Sem regras de aprovação, reprovação ou limite de faltas (decisão de projeto);
 - Percentuais sempre exibidos com no máximo 1 casa decimal.
@@ -134,8 +146,14 @@ data\sistema.db
 
 Todos os módulos usam o mesmo arquivo. O banco é criado automaticamente na
 primeira execução, já com as colunas `telefone`, `celular` e `comercial` em
-alunos. Bancos antigos são **migrados sozinhos** ao iniciar (cria as colunas e
-copia o antigo `telefone_responsavel` para `celular`).
+alunos e a estrutura de matérias em chamadas. Bancos antigos são **migrados
+sozinhos** ao iniciar: cria `celular`/`comercial` (copiando o antigo
+`telefone_responsavel`), adiciona `materia_id` e o índice por data em chamadas,
+cria a matéria **"Neutra"** por curso (associando as chamadas antigas) e faz o
+seed das 12 matérias padrão **somente** no curso "Informatica".
+
+> Toda operação de escrita (`POST`) exige um token **CSRF** embutido nos
+> formulários; a chave de sessão fica em `data/secret_key`.
 
 ### Backup
 
@@ -171,19 +189,21 @@ para levar o banco pronto a outra máquina: copie o `.sql`, rode `restaurar` lá
 ```text
 SistemaChamadas/
 ├── app/
-│   ├── app.py            → criação da aplicação, registro dos módulos, migração de telefones
+│   ├── app.py            → criação da aplicação, registro dos módulos, CSRF, migrações no startup
+│   │                       (telefones, matérias, backfill de presenças)
 │   ├── config.py         → caminhos relativos (Path), banco, backups, logs
 │   ├── extensions.py     → instância do SQLAlchemy
-│   ├── models/           → modelos do banco (Curso, Turma, Aluno, ...)
+│   ├── models/           → modelos do banco (Curso, Turma, Aluno, Matrícula, Chamada, Presenca,
+│   │                       Materia, Contato)
 │   ├── routes/           → rotas por módulo (blueprints: cursos, turmas, alunos,
-│   │                       matrículas, chamadas, dashboard, contato, relatório, importação)
-│   ├── services/         → frequência, estatísticas (+ WhatsApp), relatório (dados + PDF),
-│   │                       importação do Microcamp
-│   ├── templates/        → páginas Jinja2 (+ _icones, _sprite, _pesquisa)
+│   │                       matrículas, chamadas, dashboard, contato, relatório, importação, matérias)
+│   ├── services/         → frequência, estatísticas (+ WhatsApp), matérias (ordem canônica),
+│   │                       relatório (dados + PDF), importação do Microcamp
+│   ├── templates/        → páginas Jinja2 (+ _icones, _sprite, _pesquisa; pastas por módulo)
 │   └── static/
-│       ├── css/style.css → design system (modo escuro, 14/14 contraste WCAG)
-│       ├── js/app.js     → confirm, menu de presença, filtro de tabelas
-│       ├── icons/        → 23 SVGs (Feather) + sprite embutido + favicon
+│       ├── css/style.css → design system (tema escuro/claro, 14/14 contraste WCAG)
+│       ├── js/app.js     → confirm, menu de presença, filtro de tabelas, tema
+│       ├── icons/        → 26 SVGs (Feather) + sprite embutido + favicon
 │       └── fonts/        → Lato TTF (Regular/Bold/Black) usadas no relatório PDF
 ├── data/                 → banco SQLite
 ├── backups/              → cópias do banco
@@ -196,7 +216,7 @@ SistemaChamadas/
 ├── seed_banco.py            → exportar/restaurar/resumo do banco (.sql em seed/)
 ├── seed/                    → cópias .sql do banco (somente local, fora do Git)
 ├── Export_F10*.xlsx         → exports originais (fonte da importação, fora do Git)
-├── feather/                 → coleção original de ícones (fonte dos 21 em static/icons)
+├── feather/                 → coleção original de ícones (fonte dos 26 em static/icons)
 ├── requirements.txt
 ├── .gitignore               → data/, backups/, seed/*.sql, *.xlsx e logs/ fora do Git
 └── README.md
@@ -217,13 +237,15 @@ SistemaChamadas/
 
 1. Iniciar com `iniciar_debug.bat` (ou `python app\app.py`);
 2. Criar curso, turma e alunos (com os 3 telefones);
-3. Matricular alunos (testar a busca em `/matriculas?q=`);
-4. Na turma, clicar **Chamadas** → **Nova chamada**: preencher o painel e marcar
-   a coluna Nova → Lançar;
-5. Na matriz, testar o **botão direito** nas checkboxes (3 estados) e a lixeira
-   da coluna;
-6. Conferir dashboard do mês e a aba **Contato** (botão Mensagem → modal wa.me);
-7. Testar `backup.bat`.
+3. Em **Cursos** → "Matérias" (ou editando o curso), adicionar matérias e ver a
+   ordem canônica; criar um novo curso e conferir que ele nasce só com a "Neutra";
+4. Matricular alunos (testar a busca em `/matriculas?q=`);
+5. Na turma, clicar **Chamadas** → **Nova chamada**: escolher a matéria,
+   preencher o painel, marcar a coluna Nova e Lançar;
+6. Testar o **botão direito** nas checkboxes (3 estados), a lixeira da coluna e
+   o "Mover…" para transferir a chamada entre matérias;
+7. Conferir dashboard do mês e a aba **Contato** (botão Mensagem → modal wa.me);
+8. Testar `backup.bat`.
 
 ---
 

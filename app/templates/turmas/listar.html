@@ -78,6 +78,7 @@
                                         data-confirma="Remover a turma '{{ turma.nome }}' e seus vínculos?"
                                         class="form-inline"
                                     >
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button
                                             type="submit"
                                             class="botao botao-perigo"

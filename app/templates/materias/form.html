@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}
+    {{ "Nova matéria" if not materia else "Editar matéria" }} | Sistema de Chamadas
+{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Cursos · {{ curso.nome }} · Matérias</p>
+            <h1>{{ "Nova matéria" if not materia else "Editar matéria" }}</h1>
+        </div>
+        <a
+            href="{{ url_for('materias.listar', curso_id=curso.id) }}"
+            class="botao botao-secundario"
+        >
+            {{ icone("arrow-left") }}Voltar
+        </a>
+    </div>
+
+    <form method="post" class="formulario">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+            <label for="nome">Nome da matéria</label>
+            <input
+                type="text"
+                id="nome"
+                name="nome"
+                value="{{ materia.nome if materia else '' }}"
+                maxlength="80"
+                required
+                autofocus
+                placeholder="Ex.: Windows, Illustrator, HTML…"
+            >
+        </div>
+
+        <div class="form-acoes">
+            <button type="submit" class="botao botao-primario">
+                {{ icone("check") }}Salvar
+            </button>
+            <a
+                href="{{ url_for('materias.listar', curso_id=curso.id) }}"
+                class="botao botao-secundario"
+            >
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+
+{% endblock %}

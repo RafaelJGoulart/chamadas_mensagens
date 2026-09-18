@@ -16,6 +16,12 @@ class Curso(db.Model):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
+    materias = db.relationship(
+        "Materia",
+        backref="curso",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<Curso {self.nome}>"

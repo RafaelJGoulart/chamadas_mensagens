@@ -19,6 +19,8 @@
 
     <form method="post" class="formulario">
 
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="campo">
             <label for="nome">Nome completo</label>
             <input

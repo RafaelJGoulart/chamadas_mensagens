@@ -19,6 +19,8 @@
 
     <form method="post" class="formulario">
 
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="campo">
             <label for="curso_id">Curso</label>
             <select id="curso_id" name="curso_id" required autofocus>

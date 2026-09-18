@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% from "_icones.html" import icone %}
 
-{% block titulo %}Chamadas — {{ turma.nome }} | Sistema de Chamadas{% endblock %}
+{% block titulo %}Chamadas — {{ turma.nome }}{% if material_atual %} · {{ material_atual.nome }}{% endif %} | Sistema de Chamadas{% endblock %}
 
 {% block conteudo %}
 
     <div class="pagina-cabecalho">
         <div>
-            <p class="paginacao">{{ turma.curso.nome }}</p>
+            <p class="paginacao">
+                {{ turma.curso.nome }}{% if material_atual %} · {{ material_atual.nome }}{% endif %}
+            </p>
             <h1>Chamadas — {{ turma.nome }}</h1>
         </div>
         <div class="acoes">
@@ -29,6 +31,20 @@
         </div>
     </div>
 
+    {% if materias %}
+        <nav class="faixas-materias" aria-label="Matérias da turma">
+            {% for materia in materias %}
+                <a
+                    href="{{ url_for('chamadas.por_turma', turma_id=turma.id, materia=materia.id) }}"
+                    class="ficha-materia {% if material_atual and material_atual.id == materia.id %}ficha-materia-ativa{% endif %}"
+                    aria-current="{% if material_atual and material_atual.id == materia.id %}page{% endif %}"
+                >
+                    {{ icone("layers", "icone icone-pequeno") }}{{ materia.nome }}
+                </a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
     {% if linhas and chamadas %}
 
         <p class="legenda-matriz" aria-label="Legenda">
@@ -44,6 +60,7 @@
             class="painel painel-lancar"
             hidden
         >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <h2 class="painel-titulo">{{ icone("calendar") }}Lançar chamada</h2>
             <div class="form-lancar-grade">
                 <div class="campo">
@@ -56,6 +73,19 @@
                         value="{{ hoje }}"
                         max="{{ hoje }}"
                     >
+                </div>
+                <div class="campo">
+                    <label for="materia-lancar">Matéria</label>
+                    <select id="materia-lancar" name="materia_id" required>
+                        {% for materia in materias %}
+                            <option
+                                value="{{ materia.id }}"
+                                {{ "selected" if material_atual and material_atual.id == materia.id }}
+                            >
+                                {{ materia.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="campo">
                     <label for="conteudo-lancar">Conteúdo da aula</label>
@@ -113,12 +143,28 @@
                                 >
                                     {{ chamada.data.strftime("%d/%m") }}
                                 </span>
+                                <div class="coluna-acoes">
+                                    <select
+                                        class="sel-mover-materia"
+                                        data-chamada-id="{{ chamada.id }}"
+                                        data-data="{{ chamada.data.strftime('%d/%m/%Y') }}"
+                                        aria-label="Mover chamada de {{ chamada.data.strftime('%d/%m/%Y') }} para outra matéria"
+                                    >
+                                        <option value="">Mover…</option>
+                                        {% for materia in materias %}
+                                            {% if not material_atual or material_atual.id != materia.id %}
+                                                <option value="{{ materia.id }}">{{ materia.nome }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
                                 <form
                                     method="post"
                                     action="{{ url_for('chamadas.excluir', chamada_id=chamada.id) }}"
                                     data-confirma="Remover a chamada de {{ chamada.data.strftime('%d/%m/%Y') }}?"
                                     class="form-inline"
                                 >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button
                                         type="submit"
                                         class="botao botao-perigo btn-icone"
@@ -199,6 +245,8 @@
         <p class="dica">
             Use o botão direito sobre a checkbox para alterar a presença
             (ausente, frequente, reposição).
+            Use o menu <strong>Mover…</strong> no topo de cada coluna para
+            transferir a aula para outra matéria.
             Use a lixeira no topo da coluna para excluir a chamada.
         </p>
 
@@ -214,7 +262,13 @@
     {% else %}
 
         <div class="estado-vazio">
-            <p>Nenhuma chamada registrada para esta turma ainda.</p>
+            <p>
+                {% if material_atual %}
+                    Nenhuma chamada registrada em <strong>{{ material_atual.nome }}</strong> para esta turma ainda.
+                {% else %}
+                    Nenhuma chamada registrada para esta turma ainda.
+                {% endif %}
+            </p>
             <a
                 href="{{ url_for('chamadas.nova', turma_id=turma.id) }}"
                 class="botao botao-primario"
@@ -270,7 +324,10 @@
             {
                 method: "POST",
                 body: dados,
-                headers: { "X-Requested-With": "XMLHttpRequest" },
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRF-Token": window.CSRF_TOKEN,
+                },
             }
         )
         .then(function (resp) { return resp.json(); })
@@ -314,6 +371,39 @@
             if (valor === anterior) return;
             aplicarVisual(alvo, valor);
             salvar(alvo, valor, anterior);
+        });
+    });
+
+    /* ---- Mover chamada para outra matéria ---- */
+    document.addEventListener("change", function (ev) {
+        var sel = ev.target;
+        if (!sel.classList || !sel.classList.contains("sel-mover-materia")) return;
+        var materiaId = sel.value;
+        sel.value = "";
+        if (!materiaId) return;
+        var dados = new FormData();
+        dados.append("materia_id", materiaId);
+        fetch(
+            "/chamadas/" + sel.dataset.chamadaId + "/materia/" + materiaId,
+            {
+                method: "POST",
+                body: dados,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRF-Token": window.CSRF_TOKEN,
+                },
+            }
+        )
+        .then(function (resp) { return resp.json(); })
+        .then(function (json) {
+            if (!json.ok) {
+                alert(json.erro || "Não foi possível mover a chamada.");
+                return;
+            }
+            window.location.reload();
+        })
+        .catch(function () {
+            alert("Não foi possível mover a chamada.");
         });
     });
 
