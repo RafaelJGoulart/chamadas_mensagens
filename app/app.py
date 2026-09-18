@@ -19,6 +19,7 @@ from routes.matriculas import matriculas_bp
 from routes.chamadas import chamadas_bp
 from routes.dashboard import dashboard_bp
 from routes.contato import contato_bp
+from routes.relatorio import relatorio_bp
 
 
 def create_app():
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(chamadas_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(contato_bp)
+    app.register_blueprint(relatorio_bp)
 
     with app.app_context():
         try:

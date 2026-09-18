@@ -44,6 +44,14 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     recria o banco (com backup prévio), `resumo` conta registros. `.sql`
     **fora do Git** (`.gitignore`) — só local. Desde então o professor lançou
     novas chamadas pelo sistema (13 chamadas / 184 presenças em 17/09).
+16. **Relatório em PDF** (`reportlab` + fontes Lato): botão **Relatório PDF**
+    no Dashboard gera `GET /relatorio?mes=&ano=` com total de alunos, casos de
+    coordenação, alunos frequentes/ausentes/sem dados, a **meta de presença**
+    (todos exceto coordenação — percentuais sobre o total geral) e o
+    detalhamento por turma. `reportlab==5.0.1` entrou no `requirements.txt`;
+    fontes Lato (SIL OFL, uso comercial livre) baixadas em
+    `app/static/fonts/` e embutidas no próprio PDF. Ícone `download`
+    adicionado ao sprite (agora 22 ícones).
 
 > Tarefas adiadas de propósito (não implementar sem autorização): regras de
 > aprovação/reprovação/limite de faltas.
@@ -55,14 +63,18 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 ```
 SistemaChamadas/
 ├── app/
-│   ├── app.py               → create_app(), 7 blueprints, db.create_all(), _garantir_colunas_telefone()
+│   ├── app.py               → create_app(), 8 blueprints, db.create_all(), _garantir_colunas_telefone()
 │   ├── config.py            → caminhos relativos (Path), cria data/, backups/, logs/
 │   ├── extensions.py        → db = SQLAlchemy()
 │   ├── models/              → Curso, Turma, Aluno (3 fones), Matricula, Chamada, Presenca, Contato
-│   ├── routes/              → cursos, turmas, alunos, matriculas, chamadas, dashboard, contato
-│   ├── services/            → frequencia, estatisticas (+WhatsApp), validacao (+normalizar_busca)
+│   ├── routes/              → cursos, turmas, alunos, matriculas, chamadas, dashboard, contato, relatorio
+│   ├── services/            → frequencia, estatisticas (+WhatsApp), validacao (+normalizar_busca),
+│   │                          relatorio (dados) + pdf_relatorio (geração PDF)
 │   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo
-│   └── static/              → css/style.css, js/app.js, icons/ (21 SVGs + favicon.svg)
+│   └── static/
+│       ├── css/style.css, js/app.js
+│       ├── icons/ (22 SVGs + favicon)
+│       └── fonts/ → Lato-Regular/Bold/Black.ttf (usadas no relatório PDF)
 ├── data/                    → sistema.db (migra sozinho: celular/comercial + backfill)
 ├── backups/                 → .db (backup.bat + pré-importação 2026-09-16; pre_migracao_telefones.db pode apagar após conferir)
 ├── logs/                    → reservado para logs
@@ -122,6 +134,7 @@ Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 | Chamadas | `/chamadas` → redirect `/turmas`; `/chamadas/turma/<id>` (**matriz**); `/nova` (GET fallback + POST cria com presenças, erro volta p/ matriz); `/<id>/presenca/<aluno>` (POST JSON, usado pela matriz); `/<id>/excluir` → matriz |
 | Dashboard | `/` (`?mes=&ano=`, valida e volta ao atual se inválido) |
 | Contato | `/contato` (`?mes=&ano=`; <50% no mês, sem flag) |
+| Relatório | `/relatorio` (`?mes=&ano=`) → baixa PDF (reportlab, fontes Lato) com resumo geral, meta de presença e por turma |
 
 **REMOVIDO**: `/chamadas/<id>` (detalhe por chamada) + template + JS/CSS órfãos
 (`seletor-estado`, `botao-menu`, `badge-presenca`, `chamada-tabela`, `resumo-badges`).
@@ -144,6 +157,14 @@ Grep de verificação: zero refs a `detalhe|seletor-estado|botao-menu`.
   `mensagem_whatsapp`, `link_whatsapp`.
 - `alunos_baixa_frequencia(ano, mes, 50.0)` → ativos, sem flag, pct<50,
   ordenado do pior; cada item tem `telefones[]` (rotulo/exibido/numero_wa/wa_link).
+
+### `relatorio.py` + `pdf_relatorio.py`
+- `dados_relatorio(ano, mes)` → alunos ativos (total), casos de coordenação,
+  frequentes/ausentes/sem dados no mês, meta = total − coordenação (com % sobre
+  o total geral), real = frequentes (com %), faltam = meta − real, e por turma
+  (alunos ativos matriculados, mesmos indicadores a partir das chamadas da turma).
+- `gerar_pdf(dados)` → PDF A4 paisagem no reportlab com resumo (5 cartões),
+  tabela da meta e tabela por turma; fontes Lato embutidas de `app/static/fonts`.
 
 ### `validacao.py`
 Validadores por entidade + `normalizar_texto` + `normalizar_busca`
@@ -263,6 +284,8 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
   mas **não está no `requirements.txt`** — importação falha numa instalação
   limpa só com `pip install -r requirements.txt`. Ou adicionar lá, ou manter o
   aviso no README (foi mantido o aviso).
+- `reportlab` está no `requirements.txt` e as fontes Lato ficam em
+  `app/static/fonts/` (SIL OFL) — o relatório PDF não depende de internet.
 - `.sql` da pasta `seed/` e `*.xlsx` nunca vão ao Git (dados dos alunos).
 - `.bat` sem letra fixa; janelas ficam abertas (1º plano + `pause`).
 - Templates usam macros (`_icones`, `_pesquisa`); JS compartilhado no `app.js`.

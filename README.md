@@ -33,6 +33,10 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
   por número válido (telefone → celular → comercial), com mensagem pronta;
 - Barras de pesquisa aproximada (ignora acento/maiúsculas) em Alunos e Matrículas,
   com filtro instantâneo na tela;
+- **Relatório em PDF** (botão "Relatório PDF" no Dashboard): mostra total de
+  alunos, casos de coordenação, alunos frequentes/ausentes/sem dados no mês,
+  a meta de presença (todos exceto coordenação) e o detalhamento por turma;
+  fontes Lato (SIL OFL, uso comercial livre) embutidas em `static/fonts`;
 - Aluno com sinalização para acompanhamento da coordenação (borda âmbar + badge).
 
 ### Regras principais
@@ -168,13 +172,14 @@ SistemaChamadas/
 │   ├── config.py         → caminhos relativos (Path), banco, backups, logs
 │   ├── extensions.py     → instância do SQLAlchemy
 │   ├── models/           → modelos do banco (Curso, Turma, Aluno, ...)
-│   ├── routes/           → rotas por módulo (blueprints, inclui contato)
-│   ├── services/         → frequência, estatísticas (+ WhatsApp), validação (+ busca)
+│   ├── routes/           → rotas por módulo (blueprints, inclui contato e relatório)
+│   ├── services/         → frequência, estatísticas (+ WhatsApp), relatório (dados + PDF)
 │   ├── templates/        → páginas Jinja2 (+ _icones, _sprite, _pesquisa)
 │   └── static/
 │       ├── css/style.css → design system (modo escuro, 14/14 contraste WCAG)
 │       ├── js/app.js     → confirm, menu de presença, filtro de tabelas
-│       └── icons/        → 21 SVGs (Feather) + sprite embutido + favicon
+│       ├── icons/        → 22 SVGs (Feather) + sprite embutido + favicon
+│       └── fonts/        → Lato TTF (Regular/Bold/Black) usadas no relatório PDF
 ├── data/                 → banco SQLite
 ├── backups/              → cópias do banco
 ├── logs/                 → reservado para logs
