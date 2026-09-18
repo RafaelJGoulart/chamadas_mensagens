@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block titulo %}Importação | Sistema de Chamadas{% endblock %}
+
+{% block conteudo %}
+
+    <div class="pagina-cabecalho">
+        <div>
+            <p class="paginacao">Importação</p>
+            <h1>Importar dados do Microcamp</h1>
+        </div>
+    </div>
+
+    <div class="importacao-aviso" role="note">
+        {{ icone("alert-triangle", "icone icone-grande") }}
+        <div>
+            <strong>Esta operação substitui todos os dados do sistema.</strong>
+            Antes de importar, o banco atual é copiado automaticamente para a
+            pasta <code>backups/</code>. Envie os exports do Microcamp:
+            <em>Export_F10.xlsx</em> (cadastro) e <em>Export_F10 - Chamadas.xlsx</em>
+            (presenças).
+        </div>
+    </div>
+
+    {% if resultado %}
+
+        <section class="painel">
+            <h2 class="painel-titulo">{{ icone("check") }}Importação concluída</h2>
+
+            <div class="cartoes">
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("users", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.turmas }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Turmas</span>
+                </div>
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("user", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.alunos }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Alunos únicos</span>
+                </div>
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("check", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.alunos_ativos }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Alunos ativos</span>
+                </div>
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("clipboard", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.matriculas }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Matrículas</span>
+                </div>
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("calendar", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.chamadas }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Chamadas</span>
+                </div>
+
+                <div class="cartao">
+                    <span class="cartao-topo">
+                        {{ icone("check-square", "icone icone-grande cartao-icone") }}
+                        <span class="cartao-valor">{{ resultado.presencas }}</span>
+                    </span>
+                    <span class="cartao-rotulo">Presenças</span>
+                </div>
+
+            </div>
+
+            {% if resultado.backup %}
+                <p class="dica">
+                    Backup do banco anterior salvo em
+                    <code>backups/{{ resultado.backup }}</code>.
+                </p>
+            {% endif %}
+        </section>
+
+        <div class="form-acoes" style="margin-top: 16px;">
+            <a href="{{ url_for('dashboard.inicio') }}" class="botao botao-secundario">
+                {{ icone("arrow-left") }}Ir para o dashboard
+            </a>
+            <a href="{{ url_for('importacao.listar') }}" class="botao botao-secundario">
+                {{ icone("upload") }}Nova importação
+            </a>
+        </div>
+
+    {% else %}
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="formulario"
+            data-confirma-titulo="Confirmar importação"
+            data-confirma="Isto vai substituir TODOS os dados atuais do sistema pelos dados das planilhas (o banco atual será copiado para backups/ antes). Deseja continuar?"
+        >
+            <div class="campo">
+                <label for="cadastro">Arquivo de cadastro</label>
+                <input type="file" name="cadastro" id="cadastro" accept=".xlsx" required>
+                <p class="ajuda">Normalmente <em>Export_F10.xlsx</em> (alunos, turmas e matrículas).</p>
+            </div>
+
+            <div class="campo">
+                <label for="chamadas">Arquivo de chamadas</label>
+                <input type="file" name="chamadas" id="chamadas" accept=".xlsx" required>
+                <p class="ajuda">Normalmente <em>"Export_F10 - Chamadas.xlsx"</em> (presenças do mês).</p>
+            </div>
+
+            <div class="form-acoes">
+                <button type="submit" class="botao botao-perigo">
+                    {{ icone("upload") }}Importar e substituir dados
+                </button>
+                <a href="{{ url_for('dashboard.inicio') }}" class="botao botao-secundario">Cancelar</a>
+            </div>
+        </form>
+
+    {% endif %}
+
+{% endblock %}

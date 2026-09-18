@@ -37,6 +37,9 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
   alunos, casos de coordenação, alunos frequentes/ausentes/sem dados no mês,
   a meta de presença (todos exceto coordenação) e o detalhamento por turma;
   fontes Lato (SIL OFL, uso comercial livre) embutidas em `static/fonts`;
+- **Importação do Microcamp pela tela** (`/importacao`): envia os dois exports
+  (`Export_F10.xlsx` e `Export_F10 - Chamadas.xlsx`) e substitui os dados do
+  banco — com backup automático do banco atual em `backups/` antes de apagar;
 - Aluno com sinalização para acompanhamento da coordenação (borda âmbar + badge).
 
 ### Regras principais
@@ -172,13 +175,15 @@ SistemaChamadas/
 │   ├── config.py         → caminhos relativos (Path), banco, backups, logs
 │   ├── extensions.py     → instância do SQLAlchemy
 │   ├── models/           → modelos do banco (Curso, Turma, Aluno, ...)
-│   ├── routes/           → rotas por módulo (blueprints, inclui contato e relatório)
-│   ├── services/         → frequência, estatísticas (+ WhatsApp), relatório (dados + PDF)
+│   ├── routes/           → rotas por módulo (blueprints: cursos, turmas, alunos,
+│   │                       matrículas, chamadas, dashboard, contato, relatório, importação)
+│   ├── services/         → frequência, estatísticas (+ WhatsApp), relatório (dados + PDF),
+│   │                       importação do Microcamp
 │   ├── templates/        → páginas Jinja2 (+ _icones, _sprite, _pesquisa)
 │   └── static/
 │       ├── css/style.css → design system (modo escuro, 14/14 contraste WCAG)
 │       ├── js/app.js     → confirm, menu de presença, filtro de tabelas
-│       ├── icons/        → 22 SVGs (Feather) + sprite embutido + favicon
+│       ├── icons/        → 23 SVGs (Feather) + sprite embutido + favicon
 │       └── fonts/        → Lato TTF (Regular/Bold/Black) usadas no relatório PDF
 ├── data/                 → banco SQLite
 ├── backups/              → cópias do banco
@@ -187,7 +192,7 @@ SistemaChamadas/
 ├── iniciar_debug.bat     → desenvolvimento no PC
 ├── backup.bat            → cópia do banco
 ├── gerenciar_dados_teste.py → popular/resetar/resumo do banco
-├── importar_excel.py        → limpa e importa os exports do Microcamp
+├── importar_excel.py        → importa os exports do Microcamp (CLI; mesmo código da tela /importacao)
 ├── seed_banco.py            → exportar/restaurar/resumo do banco (.sql em seed/)
 ├── seed/                    → cópias .sql do banco (somente local, fora do Git)
 ├── Export_F10*.xlsx         → exports originais (fonte da importação, fora do Git)
@@ -235,18 +240,21 @@ Menu interativo: popular (20 alunos com 3 perfis de telefone), resetar (pede
 
 ## Importação de dados reais (Microcamp)
 
-Pré-requisito (fora do `requirements.txt`):
+`openpyxl` está no `requirements.txt`.
 
-```bat
-python -m pip install openpyxl
-```
+Pela **tela do sistema** (`/importacao`): envie os dois arquivos e confirme —
+o banco atual é copiado para `backups/` antes e depois os dados são
+substituídos.
+
+Pelo **terminal** (mesma lógica):
 
 ```bat
 python importar_excel.py
 ```
 
 Limpa o banco e importa os exports `Export_F10.xlsx` (cadastro) e
-`Export_F10 - Chamadas.xlsx` (presenças do mês) que ficam na raiz.
+`Export_F10 - Chamadas.xlsx` (presenças do mês) que ficam na raiz (ou pela
+tela, sem precisar deles na raiz).
 Regras: turmas nomeadas pelo código oficial da coluna "Turma"; matrícula ativa
 só com Status Contrato = "Ativo"; alunos não-ativos que o F10 marcou presentes
 entram como **ausentes**; telefones limpos e priorizando o responsável.

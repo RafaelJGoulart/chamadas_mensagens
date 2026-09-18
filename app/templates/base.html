@@ -57,6 +57,10 @@
                     href="{{ url_for('contato.listar') }}"
                     {% if request.endpoint and request.endpoint.startswith("contato.") %}aria-current="page"{% endif %}
                 >{{ icone("phone") }}Contato</a>
+                <a
+                    href="{{ url_for('importacao.listar') }}"
+                    {% if request.endpoint and request.endpoint.startswith("importacao.") %}aria-current="page"{% endif %}
+                >{{ icone("upload") }}Importação</a>
             </nav>
         </div>
     </header>

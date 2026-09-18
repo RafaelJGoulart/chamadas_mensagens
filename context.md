@@ -52,6 +52,15 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     fontes Lato (SIL OFL, uso comercial livre) baixadas em
     `app/static/fonts/` e embutidas no próprio PDF. Ícone `download`
     adicionado ao sprite (agora 22 ícones).
+17. **Tela de Importação do Microcamp** (`/importacao`, ícone `upload`):
+    a lógica do antigo `importar_excel.py` virou `app/services/importacao_excel.py`
+    (chamável de qualquer lugar, com app context) e a tela faz o upload dos dois
+    exports e **substitui todos os dados** — já gerando backup automático do
+    banco em `backups/` (arquivo `sistema_pre_importacao_<data>.db`) antes de
+    apagar. `openpyxl==3.1.5` entrou no `requirements.txt`. O CLI virou wrapper
+    fino (`importar_excel.py`) que chama o mesmo serviço. Modal de confirmação
+    agora aceita `data-confirma-titulo` (usado na importação). Dashboard: painéis
+    de gráfico com altura adaptada ao conteúdo (`align-items: start`).
 
 > Tarefas adiadas de propósito (não implementar sem autorização): regras de
 > aprovação/reprovação/limite de faltas.
@@ -63,17 +72,19 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 ```
 SistemaChamadas/
 ├── app/
-│   ├── app.py               → create_app(), 8 blueprints, db.create_all(), _garantir_colunas_telefone()
+│   ├── app.py               → create_app(), 9 blueprints, db.create_all(), _garantir_colunas_telefone()
 │   ├── config.py            → caminhos relativos (Path), cria data/, backups/, logs/
 │   ├── extensions.py        → db = SQLAlchemy()
 │   ├── models/              → Curso, Turma, Aluno (3 fones), Matricula, Chamada, Presenca, Contato
-│   ├── routes/              → cursos, turmas, alunos, matriculas, chamadas, dashboard, contato, relatorio
+│   ├── routes/              → cursos, turmas, alunos, matriculas, chamadas, dashboard, contato,
+│   │                          relatorio, importacao
 │   ├── services/            → frequencia, estatisticas (+WhatsApp), validacao (+normalizar_busca),
-│   │                          relatorio (dados) + pdf_relatorio (geração PDF)
+│   │                          relatorio (dados) + pdf_relatorio (geração PDF),
+│   │                          importacao_excel (upload do Microcamp)
 │   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo
 │   └── static/
 │       ├── css/style.css, js/app.js
-│       ├── icons/ (22 SVGs + favicon)
+│       ├── icons/ (23 SVGs + favicon)
 │       └── fonts/ → Lato-Regular/Bold/Black.ttf (usadas no relatório PDF)
 ├── data/                    → sistema.db (migra sozinho: celular/comercial + backfill)
 ├── backups/                 → .db (backup.bat + pré-importação 2026-09-16; pre_migracao_telefones.db pode apagar após conferir)
@@ -123,7 +134,7 @@ Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 
 ---
 
-## 5. Rotas (7 blueprints)
+## 5. Rotas (9 blueprints)
 
 | Módulo | Endpoints principais |
 |---|---|
@@ -135,6 +146,7 @@ Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 | Dashboard | `/` (`?mes=&ano=`, valida e volta ao atual se inválido) |
 | Contato | `/contato` (`?mes=&ano=`; <50% no mês, sem flag) |
 | Relatório | `/relatorio` (`?mes=&ano=`) → baixa PDF (reportlab, fontes Lato) com resumo geral, meta de presença e por turma |
+| Importação | `/importacao` (GET form + POST upload dos 2 exports do Microcamp; substitui dados, com backup prévio) |
 
 **REMOVIDO**: `/chamadas/<id>` (detalhe por chamada) + template + JS/CSS órfãos
 (`seletor-estado`, `botao-menu`, `badge-presenca`, `chamada-tabela`, `resumo-badges`).
@@ -169,6 +181,15 @@ Grep de verificação: zero refs a `detalhe|seletor-estado|botao-menu`.
 ### `validacao.py`
 Validadores por entidade + `normalizar_texto` + `normalizar_busca`
 (minúsculas sem acento — usada nas buscas de alunos e matrículas).
+
+### `importacao_excel.py`
+- Lê os dois exports (`Export_F10.xlsx` cadastro + `Export_F10 - Chamadas.xlsx`)
+  com openpyxl e **substitui todos os dados** — num único commit (rollback em
+  erro), com backup automático do banco atual em `backups/`.
+- `importar(caminho_cadastro, caminho_chamadas)` → dict resumo
+  (turmas/alunos/ativos/matriculas/chamadas/presencas/backup). Requer app
+  context (rotas já têm; o CLI cria). Usada pela tela `/importacao` e pelo
+  `importar_excel.py`.
 
 ---
 
@@ -259,10 +280,14 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
 
 ---
 
-## 14. Importação do Microcamp (`importar_excel.py`)
+## 14. Importação do Microcamp (tela `/importacao` + CLI)
 
-- Pega `Export_F10.xlsx` (cadastro) + `Export_F10 - Chamadas.xlsx` (presenças)
-  na raiz do projeto e **LIMPA o banco** antes de popular — re-executável.
+- A lógica vive em `app/services/importacao_excel.py`; a tela `/importacao`
+  recebe os uploads dos dois exports e chama `importar()`. O CLI
+  `importar_excel.py` é um wrapper fino que usa os arquivos da raiz — mesma
+  função, outro front-end.
+- **LIMPA o banco** antes de popular (substitui tudo, com backup automático
+  em `backups/sistema_pre_importacao_<data>.db`) — re-executável, rollback em erro.
 - Regras:
   - Turma é nomeada pelo código oficial da coluna "Turma" (ex.: QAMC170002);
     `dia_semana` é derivado das datas de chamada (QA=quarta, SB=**sábado**, SG=segunda).
@@ -274,18 +299,15 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
   - Telefones são limpos (corta sufixo após `;`/`|`, ignora "Não Cadastrado")
     e priorizam o responsável: `telefone`/`celular`/`comercial` do titular com
     fallback p/ números do próprio aluno; `responsavel` = nome do titular.
-- Pós-importação recomendada: rodar validação (confronto presenças × Excel,
-  dia-da-semana × data, duplicatas, WhatsApp) e conferir dashboard/contato.
+- Pós-importação recomendada: conferir backups/ (arquivo gerado), dashboard,
+  relatório e contato.
 
 ## 15. Observações para o próximo agente
 
 - Não instalar libs novas sem justificativa; não reescrever o que funciona.
-- **Pendente sugerido (não feito):** `openpyxl` é usado por `importar_excel.py`
-  mas **não está no `requirements.txt`** — importação falha numa instalação
-  limpa só com `pip install -r requirements.txt`. Ou adicionar lá, ou manter o
-  aviso no README (foi mantido o aviso).
-- `reportlab` está no `requirements.txt` e as fontes Lato ficam em
-  `app/static/fonts/` (SIL OFL) — o relatório PDF não depende de internet.
+- Dependências: `reportlab` (relatório PDF) e `openpyxl` (importação) estão no
+  `requirements.txt`; as fontes Lato ficam em `app/static/fonts/` (SIL OFL) — o
+  relatório PDF não depende de internet.
 - `.sql` da pasta `seed/` e `*.xlsx` nunca vão ao Git (dados dos alunos).
 - `.bat` sem letra fixa; janelas ficam abertas (1º plano + `pause`).
 - Templates usam macros (`_icones`, `_pesquisa`); JS compartilhado no `app.js`.

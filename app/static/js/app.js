@@ -9,7 +9,7 @@
     ];
 
     /* ---- Confirmar exclusão ---- */
-    function abrirConfirmacao(mensagem, aoConfirmar) {
+    function abrirConfirmacao(titulo, mensagem, aoConfirmar) {
         var fundo = document.createElement("div");
         fundo.className = "modal-fundo";
 
@@ -19,9 +19,9 @@
         modal.setAttribute("aria-modal", "true");
         modal.setAttribute("aria-labelledby", "modal-titulo");
 
-        var titulo = document.createElement("h2");
-        titulo.id = "modal-titulo";
-        titulo.textContent = "Confirmar exclusão";
+        var hTitulo = document.createElement("h2");
+        hTitulo.id = "modal-titulo";
+        hTitulo.textContent = titulo || "Confirmar exclusão";
 
         var texto = document.createElement("p");
         texto.textContent = mensagem;
@@ -71,7 +71,11 @@
         var mensagem = form.dataset.confirma;
         if (!mensagem) return;
         ev.preventDefault();
-        abrirConfirmacao(mensagem, function () { form.submit(); });
+        abrirConfirmacao(
+            form.dataset.confirmaTitulo,
+            mensagem,
+            function () { form.submit(); }
+        );
     });
 
     /* ---- Menu de presença (usado pela matriz da turma) ---- */
