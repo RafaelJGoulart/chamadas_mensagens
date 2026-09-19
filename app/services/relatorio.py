@@ -38,18 +38,23 @@ def dados_relatorio(ano, mes):
         1 for aluno in alunos_ativos if aluno.flag_coordenacao
     )
 
+    # Só alunos ATIVOS contam: o resumo SQL pode incluir presenças de alunos
+    # inativos (ex.: não-ativos importados do F10 marcados como ausentes).
+    alunos_com_dados = {
+        aluno_id for aluno_id in por_aluno if aluno_id in por_id
+    }
+
     alunos_frequentes = 0
     alunos_ausentes = 0
-    for aluno_id, dados in por_aluno.items():
-        if aluno_id not in por_id:
-            continue
+    for aluno_id in alunos_com_dados:
+        dados = por_aluno[aluno_id]
         if aluno_frequente(
             percentual_frequencia_totais(dados["total"], dados["presentes"])
         ):
             alunos_frequentes += 1
         else:
             alunos_ausentes += 1
-    alunos_sem_dados = total_alunos - len(por_aluno)
+    alunos_sem_dados = total_alunos - len(alunos_com_dados)
 
     meta_alunos = total_alunos - casos_coordenacao
     meta_percentual = (
