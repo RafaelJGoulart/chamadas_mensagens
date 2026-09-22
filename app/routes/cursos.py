@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from extensions import db
 from models import Curso
+from services.materias import garantir_materia_neutra
 from services.validacao import validar_nome_curso
 
 cursos_bp = Blueprint("cursos", __name__)
@@ -53,6 +54,11 @@ def _salvar_curso(curso):
     curso.descricao = descricao or None
 
     try:
+        db.session.flush()
+        # Todo curso nasce com a matéria "Neutra" (idempotente: se já
+        # existir, só reaproveita). Sem ela a matriz/novo lançamento
+        # da turma não funcionam até o próximo restart.
+        garantir_materia_neutra(curso.id)
         db.session.commit()
     except Exception:
         db.session.rollback()

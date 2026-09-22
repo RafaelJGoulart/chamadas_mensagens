@@ -3,7 +3,8 @@ from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from extensions import db
-from models import Curso, DIAS_SEMANA, Turma
+from models import Chamada, Curso, DIAS_SEMANA, Turma
+from services.materias import garantir_materia_neutra
 from services.validacao import validar_turma
 
 turmas_bp = Blueprint("turmas", __name__)
@@ -76,6 +77,9 @@ def _salvar_turma(turma):
     if turma is None:
         turma = Turma()
         db.session.add(turma)
+        curso_antigo = None
+    else:
+        curso_antigo = turma.curso_id
 
     turma.curso_id = curso_id
     turma.nome = nome
@@ -84,9 +88,51 @@ def _salvar_turma(turma):
     turma.horario_fim = _parse_hora(fim)
     turma.ativa = ativa
 
-    db.session.commit()
+    try:
+        db.session.flush()
+        if curso_antigo is not None and curso_antigo != curso_id:
+            if not _mover_chamadas_para_neutra(turma.id, curso_id):
+                return False, None
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        flash("Não foi possível salvar a turma.", "erro")
+        return False, None
     flash("Turma salva.", "sucesso")
     return True, turma
+
+
+def _mover_chamadas_para_neutra(turma_id, curso_destino_id):
+    """Move as pautas da turma para a "Neutra" do curso de destino.
+
+    Sem isso as chamadas antigas ficariam ligadas a matérias do curso
+    anterior e sumiriam da matriz (que só mostra matérias do curso atual).
+    Retorna False (com flash) se houver mais de uma chamada na mesma data,
+    pois colapsar tudo na Neutra violaria a unicidade turma/data/matéria.
+    """
+    neutra = garantir_materia_neutra(curso_destino_id)
+    duplicadas = (
+        db.session.query(Chamada.data)
+        .filter(Chamada.turma_id == turma_id)
+        .group_by(Chamada.data)
+        .having(db.func.count(Chamada.id) > 1)
+        .all()
+    )
+    if duplicadas:
+        db.session.rollback()
+        datas = ", ".join(
+            d[0].strftime("%d/%m/%Y") for d in duplicadas[:5]
+        )
+        flash(
+            "Não foi possível trocar o curso: há mais de uma chamada na "
+            f"mesma data ({datas}). Mova ou exclua as duplicadas antes.",
+            "erro",
+        )
+        return False
+    Chamada.query.filter_by(turma_id=turma_id).update(
+        {"materia_id": neutra.id}
+    )
+    return True
 
 
 def _preencher_com_form(turma):

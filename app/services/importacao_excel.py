@@ -25,10 +25,12 @@ from models import (
     Chamada,
     Contato,
     Curso,
+    Materia,
     Matricula,
     Presenca,
     Turma,
 )
+from services.materias import MATERIAS_PADRAO_INFORMATICA, MATERIA_NEUTRA
 
 NOME_CURSO = "Informatica"
 CONTRATO_ATIVO = "Ativo"
@@ -167,6 +169,7 @@ def importar(caminho_cadastro, caminho_chamadas):
         db.session.query(Presenca).delete()
         db.session.query(Matricula).delete()
         db.session.query(Chamada).delete()
+        db.session.query(Materia).delete()
         db.session.query(Contato).delete()
         db.session.query(Aluno).delete()
         db.session.query(Turma).delete()
@@ -174,6 +177,16 @@ def importar(caminho_cadastro, caminho_chamadas):
 
         curso = Curso(nome=NOME_CURSO)
         db.session.add(curso)
+        db.session.flush()
+
+        # O curso importado já nasce com a "Neutra" (+ padrão Informática),
+        # para a matriz e o lançamento funcionarem sem depender de restart.
+        neutra = Materia(curso_id=curso.id, nome=MATERIA_NEUTRA)
+        db.session.add(neutra)
+        for nome_materia in MATERIAS_PADRAO_INFORMATICA:
+            db.session.add(
+                Materia(curso_id=curso.id, nome=nome_materia)
+            )
         db.session.flush()
 
         turmas_por_sheet = {}
@@ -290,7 +303,11 @@ def importar(caminho_cadastro, caminho_chamadas):
                 if chave in chamadas_feitas:
                     continue
                 chamadas_feitas.add(chave)
-                chamada = Chamada(turma_id=turma.id, data=data)
+                chamada = Chamada(
+                    turma_id=turma.id,
+                    materia_id=neutra.id,
+                    data=data,
+                )
                 db.session.add(chamada)
                 db.session.flush()
                 chamadas_por_sheet.setdefault(nome_sheet, []).append(chamada)
