@@ -1453,6 +1453,17 @@ body.modo-lancar #corpo-matriz .check-presenca:not(.check-nova) {
     justify-content: flex-end;
 }
 
+#modal-contato-links {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+#modal-contato-links .botao {
+    width: 100%;
+}
+
 /* ---------- Matérias ---------- */
 
 .faixas-materias {
