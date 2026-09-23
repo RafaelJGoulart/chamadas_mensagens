@@ -12,13 +12,18 @@
    Linha opcional <tr class="linha-sem-resultado" hidden> aparece quando nada bate. #}
 {% from "_icones.html" import icone %}
 
-{% macro barra_pesquisa(action, valor="", placeholder="Pesquisar...", id_campo="pesquisa", id_corpo="", id_contagem="") -%}
+{% macro barra_pesquisa(action, valor="", placeholder="Pesquisar...", id_campo="pesquisa", id_corpo="", id_contagem="", extras=None) -%}
 <form
     method="get"
     action="{{ action }}"
     class="barra-pesquisa"
     role="search"
 >
+    {% if extras %}
+        {% for chave, val in extras.items() %}
+            <input type="hidden" name="{{ chave }}" value="{{ val }}">
+        {% endfor %}
+    {% endif %}
     <input
         type="search"
         name="q"
@@ -32,11 +37,11 @@
     >
     <button type="submit" class="botao botao-secundario">{{ icone("search") }}Buscar</button>
     {% if valor %}
-        <a href="{{ action }}" class="botao botao-secundario">Limpar</a>
+        <a href="{{ action }}{% if extras %}?{{ extras|urlencode }}{% endif %}" class="botao botao-secundario">Limpar</a>
     {% endif %}
 </form>
 {%- endmacro %}
 
-{% macro contagem_pesquisa(id_contagem, texto="") -%}
-<p class="contagem-pesquisa" id="{{ id_contagem }}" aria-live="polite">{{ texto }}</p>
+{% macro contagem_pesquisa(id_contagem, texto="", base="") -%}
+<p class="contagem-pesquisa" id="{{ id_contagem }}" aria-live="polite"{% if base %} data-texto-base="{{ base }}"{% endif %}>{{ texto }}</p>
 {%- endmacro %}

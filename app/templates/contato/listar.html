@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_icones.html" import icone %}
+{% from "_pesquisa.html" import barra_pesquisa, contagem_pesquisa %}
 
 {% block titulo %}Contato | Sistema de Chamadas{% endblock %}
 
@@ -34,11 +35,30 @@
         </form>
     </div>
 
-    {% if itens %}
+    {% if itens or q %}
 
-        <p class="contagem-pesquisa" aria-live="polite">
-            {{ itens|length }} aluno(s) com frequência abaixo de {{ limite|round(1) }}% em {{ meses[mes - 1] }}/{{ ano }}.
-        </p>
+        {{ barra_pesquisa(
+            url_for('contato.listar'),
+            q,
+            'Pesquisar aluno por nome ou turma...',
+            'pesquisa-contato',
+            'corpo-contato',
+            'contagem-contato',
+            {'mes': mes, 'ano': ano}
+        ) }}
+
+        {% set texto_contagem = itens|length|string + ' aluno(s) com frequência abaixo de ' + limite|round(1)|string + '% em ' + meses[mes - 1] + '/' + ano|string + '.' %}
+        {% if q %}
+            {{ contagem_pesquisa(
+                'contagem-contato',
+                (itens|length|string + ' resultado(s) para "' + q + '"') if itens else ('Nenhum resultado para "' + q + '"'),
+                texto_contagem
+            ) }}
+        {% else %}
+            {{ contagem_pesquisa('contagem-contato', texto_contagem, texto_contagem) }}
+        {% endif %}
+
+        {% if itens %}
 
         <div class="tabela-envolve">
 
@@ -50,13 +70,14 @@
                         <th>Turmas no mês</th>
                         <th class="centro">Frequência</th>
                         <th class="centro">Faltas</th>
+                        <th class="centro">Situação</th>
                         <th class="col-acoes">Ações</th>
                     </tr>
                 </thead>
 
-                <tbody>
+                <tbody id="corpo-contato">
                     {% for item in itens %}
-                        <tr>
+                        <tr data-filtro="{{ item.aluno.nome }} {{ item.turmas|join(' ') }} {{ item.nivel_rotulo }}">
                             <td>{{ item.aluno.nome }}</td>
                             <td>{{ item.turmas|join(", ") or "—" }}</td>
                             <td class="centro">
@@ -64,7 +85,10 @@
                                 <span class="obs-menos">{{ item.presentes }}/{{ item.total }}</span>
                             </td>
                             <td class="centro">
-                                <span class="badge badge-aviso">{{ item.faltas }}</span>
+                                <span class="badge {{ item.nivel_badge }}" title="{{ item.faltas }} falta(s) no mês">{{ item.faltas }} falta{% if item.faltas != 1 %}s{% endif %}</span>
+                            </td>
+                            <td class="centro">
+                                <span class="badge {{ item.nivel_badge }}">{{ item.nivel_rotulo }}</span>
                             </td>
                             <td class="col-acoes">
                                 <div class="acoes">
@@ -75,6 +99,9 @@
                                             data-nome="{{ item.aluno.nome }}"
                                             data-telefones="{{ item.telefones|tojson|forceescape }}"
                                             data-mensagem="{{ item.mensagem }}"
+                                            data-nivel-rotulo="{{ item.nivel_rotulo }}"
+                                            data-nivel-badge="{{ item.nivel_badge }}"
+                                            data-faltas="{{ item.faltas }}"
                                         >
                                             {{ icone("message-circle") }}Mensagem
                                         </button>
@@ -91,6 +118,11 @@
                             </td>
                         </tr>
                     {% endfor %}
+                    <tr class="linha-sem-resultado" hidden>
+                        <td colspan="6" class="centro obs-menos">
+                            Nenhum aluno corresponde à pesquisa digitada.
+                        </td>
+                    </tr>
                 </tbody>
 
             </table>
@@ -105,11 +137,20 @@
     {% else %}
 
         <div class="estado-vazio">
-            <p>Nenhum aluno ativo sem flag de coordenação abaixo de {{ limite|round(1) }}% em {{ meses[mes - 1] }}/{{ ano }}.</p>
-            <a href="{{ url_for('dashboard.inicio', mes=mes, ano=ano) }}" class="botao botao-secundario">
-                Ver dashboard do mês
-            </a>
+            {% if q %}
+                <p>Nenhum aluno encontrado para "{{ q }}".</p>
+                <a href="{{ url_for('contato.listar', mes=mes, ano=ano) }}" class="botao botao-secundario">
+                    Limpar pesquisa
+                </a>
+            {% else %}
+                <p>Nenhum aluno ativo sem flag de coordenação abaixo de {{ limite|round(1) }}% em {{ meses[mes - 1] }}/{{ ano }}.</p>
+                <a href="{{ url_for('dashboard.inicio', mes=mes, ano=ano) }}" class="botao botao-secundario">
+                    Ver dashboard do mês
+                </a>
+            {% endif %}
         </div>
+
+    {% endif %}
 
     {% endif %}
 
@@ -117,6 +158,7 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-contato-titulo">
             <h2 id="modal-contato-titulo">Enviar mensagem</h2>
             <p id="modal-contato-nome"></p>
+            <p><span class="badge badge-neutro" id="modal-contato-nivel"></span></p>
             <div class="campo" style="margin-bottom: 16px;">
                 <label>Números disponíveis</label>
                 <div id="modal-contato-links"></div>
@@ -143,6 +185,7 @@
     var fundo = document.getElementById("modal-contato");
     if (!fundo) return;
     var nomeEl = document.getElementById("modal-contato-nome");
+    var nivelEl = document.getElementById("modal-contato-nivel");
     var linksEl = document.getElementById("modal-contato-links");
     var msgEl = document.getElementById("modal-contato-msg");
     var btnFechar = document.getElementById("modal-contato-fechar");
@@ -160,6 +203,10 @@
             telefones = [];
         }
         nomeEl.textContent = botao.dataset.nome || "";
+        var faltas = parseInt(botao.dataset.faltas || "0", 10);
+        nivelEl.textContent = (botao.dataset.nivelRotulo || "") +
+            " · " + faltas + " falta" + (faltas === 1 ? "" : "s");
+        nivelEl.className = "badge " + (botao.dataset.nivelBadge || "badge-neutro");
         msgEl.textContent = botao.dataset.mensagem || "";
         linksEl.innerHTML = "";
         telefones.forEach(function (tel) {

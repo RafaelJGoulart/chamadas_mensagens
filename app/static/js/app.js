@@ -166,7 +166,7 @@
             if (contagem) {
                 contagem.textContent = termo
                     ? visiveis + " resultado(s) na tela"
-                    : "";
+                    : (contagem.getAttribute("data-texto-base") || "");
             }
         }
     });

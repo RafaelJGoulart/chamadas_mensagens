@@ -275,14 +275,76 @@ def telefone_para_whatsapp(telefone, celular=None, comercial=None):
     return None, None, None
 
 
-def mensagem_whatsapp(nome, percentual, total, presentes, mes_nome, ano):
+def nivel_faltas(faltas):
+    """Faixa da situação no mês pelo nº de faltas: (chave, rótulo, badge)."""
+    if faltas <= 1:
+        return ("leve", "Toque leve", "badge-neutro")
+    if faltas <= 3:
+        return ("atencao", "Atenção", "badge-aviso")
+    return ("urgente", "Urgente", "badge-erro")
+
+
+def mensagem_whatsapp(nome, percentual, total, presentes, mes_nome, ano,
+                       responsavel=None, faltas=None):
+    """Mensagem pronta por faixa de faltas (humanizada, com reposição).
+
+    Com responsável, fala com ele sobre o aluno; sem, fala com o aluno.
+    Mantém todos os dados (mês/ano, %, presenças/total, faltas).
+    """
+    if faltas is None:
+        faltas = total - presentes
+    pct = "%g" % percentual
+    base = f"em {mes_nome}/{ano}: {presentes}/{total} presenças ({pct}%)"
+    falta_txt = "1 falta" if faltas == 1 else f"{faltas} faltas"
+    chave = nivel_faltas(faltas)[0]
+
+    if responsavel:
+        if chave == "leve":
+            return (
+                f"Olá! Aqui é do curso de Informática. Sentimos falta "
+                f"de {nome} na aula — {base}, {falta_txt}. Está tudo bem "
+                f"por aí? Se precisar, combinamos uma reposição: é só "
+                f"responder a esta mensagem. Contamos com vocês!"
+            )
+        if chave == "atencao":
+            return (
+                f"Olá! Aqui é do curso de Informática. Estou preocupado "
+                f"com a frequência de {nome} — {base}, {falta_txt}. Para "
+                f"não ficar para trás no conteúdo, o ideal é retomar já: "
+                f"a gente agenda a reposição das aulas perdidas. Pode me "
+                f"responder aqui para combinarmos? Conto com vocês!"
+            )
+        return (
+            f"Olá! Aqui é do curso de Informática e preciso falar sobre "
+            f"a frequência de {nome} — {base}, {falta_txt}. Nesse ritmo "
+            f"fica difícil acompanhar a turma, mas dá tempo de reverter: "
+            f"vamos agendar as reposições? Me responda ainda hoje para "
+            f"combinarmos o melhor dia. Conto com vocês!"
+        )
+
     primeiro = (nome or "").strip().split(" ")[0] or nome
-    faltas = total - presentes
+    if chave == "leve":
+        return (
+            f"Olá {primeiro}! Aqui é do curso de Informática. Sentimos "
+            f"sua falta na aula — {base}, {falta_txt}. Está tudo bem? "
+            f"Se precisar, combinamos uma reposição: é só responder "
+            f"aqui. Conto com você!"
+        )
+    if chave == "atencao":
+        return (
+            f"Olá {primeiro}! Aqui é do curso de Informática. Sua "
+            f"frequência {base}, {falta_txt} — e isso pode "
+            f"te deixar para trás no conteúdo. Vamos retomar já? A gente "
+            f"agenda a reposição das aulas perdidas: me responde aqui "
+            f"para combinarmos. Conto com você!"
+        )
     return (
-        f"Olá {primeiro}, aqui é do curso de Informática. "
-        f"Sua frequência em {mes_nome}/{ano} está em {percentual}% "
-        f"({presentes}/{total} presenças, {faltas} falta(s)). "
-        f"Sentimos sua falta nas aulas. Podemos contar com você?"
+        f"Olá {primeiro}! Aqui é do curso de Informática e preciso "
+        f"falar sério com você sobre sua frequência: {pct}% {base}, "
+        f"{falta_txt}. Nesse ritmo fica difícil acompanhar a turma, mas "
+        f"dá tempo de reverter — vamos agendar as reposições? Me "
+        f"responde ainda hoje para combinarmos o melhor dia. Conto com "
+        f"você!"
     )
 
 
@@ -294,8 +356,9 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
     """Alunos ativos, SEM flag de coordenação e com frequência < limite no mês.
 
     Retorna lista de dicts ordenada por percentual (pior primeiro):
-    aluno, percentual, total, presentes, faltas, turmas, telefone,
-    telefone_rotulo, telefones, numero_wa, wa_link, mensagem.
+    aluno, percentual, total, presentes, faltas, nivel, nivel_rotulo,
+    nivel_badge, turmas, telefone, telefone_rotulo, telefones, numero_wa,
+    wa_link, mensagem.
     """
     por_turma_aluno = resumo_mensal_por_turma_aluno(ano, mes)
     por_aluno = _resumo_global(por_turma_aluno)
@@ -336,10 +399,19 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
             aluno.telefone, aluno.celular, aluno.comercial
         )
         mensagem = mensagem_whatsapp(
-            aluno.nome, percentual, total, presentes, mes_nome, ano
+            aluno.nome,
+            percentual,
+            total,
+            presentes,
+            mes_nome,
+            ano,
+            responsavel=aluno.responsavel,
         )
         telefones = numeros_whatsapp(
             aluno.telefone, aluno.celular, aluno.comercial, mensagem
+        )
+        nivel_chave, nivel_rotulo, nivel_badge = nivel_faltas(
+            total - presentes
         )
         itens.append(
             {
@@ -348,6 +420,9 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
                 "total": total,
                 "presentes": presentes,
                 "faltas": total - presentes,
+                "nivel": nivel_chave,
+                "nivel_rotulo": nivel_rotulo,
+                "nivel_badge": nivel_badge,
                 "turmas": sorted(turmas_por_aluno.get(aluno_id, set())),
                 "telefone": exibido,
                 "telefone_rotulo": rotulo,
