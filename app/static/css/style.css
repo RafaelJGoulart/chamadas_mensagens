@@ -1453,15 +1453,32 @@ body.modo-lancar #corpo-matriz .check-presenca:not(.check-nova) {
     justify-content: flex-end;
 }
 
-#modal-contato-links {
+.contato-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.contato-grupo:last-child {
+    margin-bottom: 0;
+}
+
+.contato-numeros {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
 }
 
-#modal-contato-links .botao {
+.contato-numeros .botao {
     width: 100%;
+}
+
+.contato-vazio {
+    margin: 0;
+    color: var(--texto-fraco);
+    font-size: 13px;
 }
 
 /* ---------- Matérias ---------- */

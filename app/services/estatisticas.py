@@ -357,7 +357,8 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
 
     Retorna lista de dicts ordenada por percentual (pior primeiro):
     aluno, percentual, total, presentes, faltas, nivel, nivel_rotulo,
-    nivel_badge, turmas, telefone, telefone_rotulo, telefones, numero_wa,
+    nivel_badge, responsavel, telefones_aluno, telefones_responsavel,
+    turmas, telefone, telefone_rotulo, telefones, numero_wa,
     wa_link, mensagem.
     """
     por_turma_aluno = resumo_mensal_por_turma_aluno(ano, mes)
@@ -413,6 +414,14 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
         nivel_chave, nivel_rotulo, nivel_badge = nivel_faltas(
             total - presentes
         )
+        # Os números gravados são do responsável quando há um cadastrado
+        # (regra da importação); sem responsável, são do próprio aluno.
+        if aluno.responsavel:
+            telefones_aluno = []
+            telefones_responsavel = telefones
+        else:
+            telefones_aluno = telefones
+            telefones_responsavel = []
         itens.append(
             {
                 "aluno": aluno,
@@ -423,6 +432,9 @@ def alunos_baixa_frequencia(ano, mes, limite=50.0):
                 "nivel": nivel_chave,
                 "nivel_rotulo": nivel_rotulo,
                 "nivel_badge": nivel_badge,
+                "responsavel": aluno.responsavel,
+                "telefones_aluno": telefones_aluno,
+                "telefones_responsavel": telefones_responsavel,
                 "turmas": sorted(turmas_por_aluno.get(aluno_id, set())),
                 "telefone": exibido,
                 "telefone_rotulo": rotulo,

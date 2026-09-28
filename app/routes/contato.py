@@ -47,5 +47,5 @@ def listar():
 def _texto_contato(item):
     return normalizar_busca(
         f"{item['aluno'].nome} {' '.join(item['turmas'])} "
-        f"{item['nivel_rotulo']}"
+        f"{item['nivel_rotulo']} {item['aluno'].responsavel or ''}"
     )

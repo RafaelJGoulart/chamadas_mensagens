@@ -77,7 +77,7 @@
 
                 <tbody id="corpo-contato">
                     {% for item in itens %}
-                        <tr data-filtro="{{ item.aluno.nome }} {{ item.turmas|join(' ') }} {{ item.nivel_rotulo }}">
+                        <tr data-filtro="{{ item.aluno.nome }} {{ item.turmas|join(' ') }} {{ item.nivel_rotulo }} {{ item.aluno.responsavel or '' }}">
                             <td>{{ item.aluno.nome }}</td>
                             <td>{{ item.turmas|join(", ") or "—" }}</td>
                             <td class="centro">
@@ -97,7 +97,9 @@
                                             type="button"
                                             class="botao botao-primario abrir-contato"
                                             data-nome="{{ item.aluno.nome }}"
-                                            data-telefones="{{ item.telefones|tojson|forceescape }}"
+                                            data-responsavel="{{ item.aluno.responsavel or '' }}"
+                                            data-telefones-aluno="{{ item.telefones_aluno|tojson|forceescape }}"
+                                            data-telefones-responsavel="{{ item.telefones_responsavel|tojson|forceescape }}"
                                             data-mensagem="{{ item.mensagem }}"
                                             data-nivel-rotulo="{{ item.nivel_rotulo }}"
                                             data-nivel-badge="{{ item.nivel_badge }}"
@@ -160,8 +162,14 @@
             <p id="modal-contato-nome"></p>
             <p><span class="badge badge-neutro" id="modal-contato-nivel"></span></p>
             <div class="campo" style="margin-bottom: 16px;">
-                <label>Números disponíveis</label>
-                <div id="modal-contato-links"></div>
+                <div class="contato-grupo">
+                    <label id="modal-contato-aluno-rotulo">Aluno</label>
+                    <div class="contato-numeros" id="modal-contato-aluno-links"></div>
+                </div>
+                <div class="contato-grupo">
+                    <label id="modal-contato-resp-rotulo">Responsável</label>
+                    <div class="contato-numeros" id="modal-contato-resp-links"></div>
+                </div>
             </div>
             <div class="campo">
                 <label>Mensagem pronta</label>
@@ -186,7 +194,10 @@
     if (!fundo) return;
     var nomeEl = document.getElementById("modal-contato-nome");
     var nivelEl = document.getElementById("modal-contato-nivel");
-    var linksEl = document.getElementById("modal-contato-links");
+    var alunoRotuloEl = document.getElementById("modal-contato-aluno-rotulo");
+    var alunoLinksEl = document.getElementById("modal-contato-aluno-links");
+    var respRotuloEl = document.getElementById("modal-contato-resp-rotulo");
+    var respLinksEl = document.getElementById("modal-contato-resp-links");
     var msgEl = document.getElementById("modal-contato-msg");
     var btnFechar = document.getElementById("modal-contato-fechar");
 
@@ -195,19 +206,16 @@
         fundo.setAttribute("aria-hidden", "true");
     }
 
-    function abrir(botao) {
-        var telefones = [];
+    function grupoLinks(lista) {
         try {
-            telefones = JSON.parse(botao.dataset.telefones || "[]");
+            var parsed = JSON.parse(lista || "[]");
+            return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
-            telefones = [];
+            return [];
         }
-        nomeEl.textContent = botao.dataset.nome || "";
-        var faltas = parseInt(botao.dataset.faltas || "0", 10);
-        nivelEl.textContent = (botao.dataset.nivelRotulo || "") +
-            " · " + faltas + " falta" + (faltas === 1 ? "" : "s");
-        nivelEl.className = "badge " + (botao.dataset.nivelBadge || "badge-neutro");
-        msgEl.textContent = botao.dataset.mensagem || "";
+    }
+
+    function preencherGrupo(linksEl, telefones) {
         linksEl.innerHTML = "";
         telefones.forEach(function (tel) {
             var link = document.createElement("a");
@@ -218,6 +226,30 @@
             link.textContent = tel.rotulo + ": " + tel.exibido;
             linksEl.append(link);
         });
+        if (!telefones.length) {
+            var vazio = document.createElement("p");
+            vazio.className = "contato-vazio";
+            vazio.textContent = "Sem número cadastrado";
+            linksEl.append(vazio);
+        }
+    }
+
+    function abrir(botao) {
+        var telAluno = grupoLinks(botao.dataset.telefonesAluno);
+        var telResp = grupoLinks(botao.dataset.telefonesResponsavel);
+        var responsavel = (botao.dataset.responsavel || "").trim();
+        nomeEl.textContent = botao.dataset.nome || "";
+        alunoRotuloEl.textContent = "Aluno — " + (botao.dataset.nome || "");
+        respRotuloEl.textContent = responsavel
+            ? "Responsável — " + responsavel
+            : "Responsável — não informado";
+        preencherGrupo(alunoLinksEl, telAluno);
+        preencherGrupo(respLinksEl, telResp);
+        var faltas = parseInt(botao.dataset.faltas || "0", 10);
+        nivelEl.textContent = (botao.dataset.nivelRotulo || "") +
+            " · " + faltas + " falta" + (faltas === 1 ? "" : "s");
+        nivelEl.className = "badge " + (botao.dataset.nivelBadge || "badge-neutro");
+        msgEl.textContent = botao.dataset.mensagem || "";
         fundo.classList.add("aberto");
         fundo.setAttribute("aria-hidden", "false");
         btnFechar.focus();
