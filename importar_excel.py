@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Importa os exports do sistema de vendas (Export_F10.xlsx e "Export_F10 - Chamadas.xlsx")
+"""Importa os arquivos de exportação (Export_F10.xlsx e "Export_F10 - Chamadas.xlsx")
 para o banco do Sistema de Chamadas, substituindo todos os dados atuais.
 
 Uso:

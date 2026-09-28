@@ -48,7 +48,7 @@ Sem login, sem nuvem, sem internet: tudo roda no computador em
   alunos, casos de coordenação, alunos frequentes/ausentes/sem dados no mês,
   a meta de presença (todos exceto coordenação) e o detalhamento por turma;
   fontes Lato (SIL OFL, uso comercial livre) embutidas em `static/fonts`;
-- **Importação do sistema de vendas pela tela** (`/importacao`): envia os dois exports
+- **Importação de planilhas pela tela** (`/importacao`): envia os dois exports
   (`Export_F10.xlsx` e `Export_F10 - Chamadas.xlsx`) e substitui os dados do
   banco — com backup automático do banco atual em `backups/` antes de apagar;
 - Aluno com sinalização para acompanhamento da coordenação (borda âmbar + badge).
@@ -198,7 +198,7 @@ SistemaChamadas/
 │   ├── routes/           → rotas por módulo (blueprints: cursos, turmas, alunos,
 │   │                       matrículas, chamadas, dashboard, contato, relatório, importação, matérias)
 │   ├── services/         → frequência, estatísticas (+ WhatsApp), matérias (ordem canônica),
-│   │                       relatório (dados + PDF), importação do sistema de vendas
+│   │                       relatório (dados + PDF), importação de planilhas
 │   ├── templates/        → páginas Jinja2 (+ _icones, _sprite, _pesquisa; pastas por módulo)
 │   └── static/
 │       ├── css/style.css → design system (tema escuro/claro, 14/14 contraste WCAG)
@@ -212,7 +212,7 @@ SistemaChamadas/
 ├── iniciar_debug.bat     → desenvolvimento no PC
 ├── backup.bat            → cópia do banco
 ├── gerenciar_dados_teste.py → popular/resetar/resumo do banco
-├── importar_excel.py        → importa os exports do sistema de vendas (CLI; mesmo código da tela /importacao)
+├── importar_excel.py        → importa as planilhas de exportação (CLI; mesmo código da tela /importacao)
 ├── seed_banco.py            → exportar/restaurar/resumo do banco (.sql em seed/)
 ├── seed/                    → cópias .sql do banco (somente local, fora do Git)
 ├── Export_F10*.xlsx         → exports originais (fonte da importação, fora do Git)
@@ -260,7 +260,7 @@ Menu interativo: popular (20 alunos com 3 perfis de telefone), resetar (pede
 
 ---
 
-## Importação de dados reais (sistema de vendas)
+## Importação de dados reais (planilhas)
 
 `openpyxl` está no `requirements.txt`.
 

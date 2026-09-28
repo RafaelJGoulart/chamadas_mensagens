@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Importação dos exports do sistema de vendas para dentro do sistema.
+"""Importação dos arquivos de exportação para dentro do sistema.
 
 Lê `Export_F10.xlsx` (cadastro) e `Export_F10 - Chamadas.xlsx` (presenças) e
 SUBSTITUI todos os dados atuais do banco. Antes de apagar, gera um backup do
