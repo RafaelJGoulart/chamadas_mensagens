@@ -14,7 +14,7 @@ backups/
 # Copias de seguranca geradas por seed_banco.py (dados reais dos alunos)
 seed/*.sql
 
-# Fontes de dados do Microcamp (contem dados dos alunos)
+# Fontes de dados do sistema de vendas (contem dados dos alunos)
 *.xlsx
 
 # Logs

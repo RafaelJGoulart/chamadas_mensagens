@@ -34,7 +34,7 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
 11. Modal de confirmação corrigido (faltava classe `aberto` — nada excluía)
 12. Clique esquerdo travado na matriz (só botão direito altera estado)
 13. Redesign UI (contraste 14/14 WCAG, tokens, componentes refinados)
-14. **Importação real do Microcamp** (`importar_excel.py`): banco limpo dos
+14. **Importação real do sistema de vendas** (`importar_excel.py`): banco limpo dos
     dados de teste e populado com os alunos/turmas/chamadas dos exports
     `Export_F10.xlsx` + `Export_F10 - Chamadas.xlsx` (set/2026). Não-ativos
     que o F10 de chamadas marcou presentes (Rebecca/QA19 e Gustavo/SB1330)
@@ -52,7 +52,7 @@ Módulos originais concluídos (15/15 OK na época). Depois, nesta sequência:
     fontes Lato (SIL OFL, uso comercial livre) baixadas em
     `app/static/fonts/` e embutidas no próprio PDF. Ícone `download`
     adicionado ao sprite (agora 22 ícones).
-17. **Tela de Importação do Microcamp** (`/importacao`, ícone `upload`):
+17. **Tela de Importação do sistema de vendas** (`/importacao`, ícone `upload`):
     a lógica do antigo `importar_excel.py` virou `app/services/importacao_excel.py`
     (chamável de qualquer lugar, com app context) e a tela faz o upload dos dois
     exports e **substitui todos os dados** — já gerando backup automático do
@@ -141,7 +141,7 @@ SistemaChamadas/
 │   │                          relatorio, importacao, materias
 │   ├── services/            → frequencia, estatisticas (+WhatsApp), validacao (+normalizar_busca),
 │   │                          relatorio (dados) + pdf_relatorio (geração PDF),
-│   │                          materias (ordem canônica), importacao_excel (upload do Microcamp)
+│   │                          materias (ordem canônica), importacao_excel (upload do sistema de vendas)
 │   ├── templates/           → base + _icones + _sprite + _pesquisa + pastas por módulo (incl. materias/)
 │   └── static/
 │       ├── css/style.css, js/app.js
@@ -152,8 +152,8 @@ SistemaChamadas/
 ├── logs/                    → reservado para logs
 ├── seed/                    → .sql locais (exportar/restaurar; fora do Git)
 ├── feather/                 → coleção original Feather (287 SVGs; fonte dos ícones usados em static/icons)
-├── Export_F10*.xlsx         → exports do Microcamp (fonte da importação; fora do Git)
-├── importar_excel.py        → LIMPA o banco e importa os exports do Microcamp (ver seção 4)
+├── Export_F10*.xlsx         → exports do sistema de vendas (fonte da importação; fora do Git)
+├── importar_excel.py        → LIMPA o banco e importa os exports do sistema de vendas (ver seção 4)
 ├── seed_banco.py            → exportar (.sql) / restaurar / resumo do banco
 ├── gerenciar_dados_teste.py → popular (3 fones) / resetar / resumo
 ├── iniciar.bat              → pendrive: 1º plano + abre navegador após 3s + pause
@@ -210,7 +210,7 @@ Migração idempotente no startup: `ADD COLUMN celular/comercial` + backfill
 | Dashboard | `/` (`?mes=&ano=`, valida e volta ao atual se inválido) |
 | Contato | `/contato` (`?mes=&ano=`; <50% no mês, sem flag) |
 | Relatório | `/relatorio` (`?mes=&ano=`) → baixa PDF (reportlab, fontes Lato) com resumo geral, meta de presença e por turma |
-| Importação | `/importacao` (GET form + POST upload dos 2 exports do Microcamp; substitui dados, com backup prévio) |
+| Importação | `/importacao` (GET form + POST upload dos 2 exports do sistema de vendas; substitui dados, com backup prévio) |
 | Matérias | `/cursos/<id>/materias` (lista), `/cursos/<id>/materias/nova`, `/materias/<id>/editar`, `/materias/<id>/excluir` (bloqueia com chamadas) |
 
 **REMOVIDO**: `/chamadas/<id>` (detalhe por chamada) + template + JS/CSS órfãos
@@ -351,7 +351,7 @@ histórico individual; upload em massa; relatórios; `runtime/` proibido.
 
 ---
 
-## 14. Importação do Microcamp (tela `/importacao` + CLI)
+## 14. Importação do sistema de vendas (tela `/importacao` + CLI)
 
 - A lógica vive em `app/services/importacao_excel.py`; a tela `/importacao`
   recebe os uploads dos dois exports e chama `importar()`. O CLI
